@@ -46,7 +46,8 @@ type eztvResponse struct {
 func (s *eztv) Search(ctx context.Context, query string) ([]search.TorrentResult, error) {
 	q := strings.TrimSpace(query)
 	if q != "" {
-		return nil, nil // EZTV API mostly works for latest or IMDB ID, not generic text search easily in this TS version
+		// EZTV API requires an IMDB ID. Generic text search is unsupported.
+		return nil, nil
 	}
 
 	u := "https://eztvx.to/api/get-torrents?limit=100&page=1"

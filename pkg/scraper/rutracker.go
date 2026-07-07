@@ -55,8 +55,9 @@ func (s *rutracker) Search(ctx context.Context, query string) ([]search.TorrentR
 	q := strings.TrimSpace(query)
 	path := "/forum/tracker.php?nm="
 	if q != "" {
-		path = fmt.Sprintf("/forum/tracker.php?nm=%s", url.QueryEscape(q)) // Should be CP1251 URL encoded in a full implementation, but often UTF8 works or is handled by browser. Wait, rutracker expects cp1251 url encoded.
-		// For simplicity, we assume the server tolerates it or we only use basic queries, full CP1251 URL encode is complex here. Let's just url escape.
+		// RuTracker expects CP1251 encoding for exact Cyrillic matching.
+		// For now, UTF-8 query escaping is used as a fallback for standard ASCII searches.
+		path = fmt.Sprintf("/forum/tracker.php?nm=%s", url.QueryEscape(q))
 	}
 
 	var html string
