@@ -1,4 +1,4 @@
-# ⛵ Gorrent
+# ⛵ GOrrent
 
 [![Release](https://img.shields.io/badge/Release-v1.1.0-green?style=flat-square)](https://github.com/x-name15/gorrent/releases)
 [![Go Version](https://img.shields.io/badge/Go-1.25-00ADD8?style=flat-square&logo=go)](https://go.dev/)
@@ -176,4 +176,4 @@ GOrrent is licensed under the GPL v3. See [`LICENSE`](./LICENSE) for details.
 
 ## Credits
 
-**Author:** Mr Jacket / Felix Manrique
+**Author:** Mr Jacket 

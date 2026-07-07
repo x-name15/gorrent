@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-var ytsHosts = []string{"yts.mx", "yts.am", "yts.rs"}
+var ytsHosts = []string{"yts.am", "yts.rs"}
 
 type ytsResponse struct {
 	Data struct {
