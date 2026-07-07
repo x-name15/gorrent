@@ -23,6 +23,7 @@ Rather than trying to change their core interactive philosophy, **Gorrent** take
 | Optional CLI        | ✅         |
 | OpenClaw            | ✅         |
 | Claude Skill        | ✅         |
+| Hermes Skill        | ✅         |
 
 ## Fault-Tolerant Architecture
 
