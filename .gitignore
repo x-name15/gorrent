@@ -11,7 +11,6 @@ gorrent-daemon.exe
 
 # Go
 vendor/
-go.sum
 
 # OS
 .DS_Store

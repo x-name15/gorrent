@@ -89,6 +89,7 @@ jobs:
           
       - name: Build Binaries & Package Bundles
         run: |
+          go mod tidy
           mkdir dist
           VERSION="${{ steps.version.outputs.version }}"
 

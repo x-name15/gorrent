@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.2] - 2026-07-07 — Ups, hotfixes Part 2!
 ### Fixed
 - **Release Pipeline**: Fixed script filenames (`gorrent.sh` and `gorrent.bat`) in the GitHub Actions bundle step, which caused the v1.0.1 release to halt before publishing Docker images and GitHub Release archives.
+- **Release Pipeline**: Added `go mod tidy` step before compilation to resolve missing `go.sum` entries for multi-arch/OS builds.
 
 ---
 ## [1.0.1] - 2026-07-07 — Ups, hotfixes!
