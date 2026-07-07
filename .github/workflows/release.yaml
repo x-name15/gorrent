@@ -1,0 +1,176 @@
+name: Gorrent Release Pipeline
+
+on:
+  workflow_run:
+    workflows: ["Gorrent CI"]
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      contents: write
+      packages: write
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Set up QEMU for cross-platform builds
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
+          driver-opts: |
+            image=moby/buildkit:latest
+            network=host
+
+      - name: Get version from CHANGELOG
+        id: version
+        run: |
+          VERSION=$(grep -m1 '## \[' CHANGELOG.md | sed 's/## \[\([^]]*\)\].*/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Extract notes from CHANGELOG
+        id: notes
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          NOTES=$(awk "/## \[${VERSION}\]/{found=1; next} found && /^## \[/{exit} found{print}" CHANGELOG.md)
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Extract title from CHANGELOG
+        id: title
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TITLE=$(grep -m1 "## \[${VERSION}\]" CHANGELOG.md | sed 's/## \[[^]]*\] - [0-9-]* — //')
+          echo "title=$TITLE" >> $GITHUB_OUTPUT
+
+      - name: Check if tag already exists (idempotency guard)
+        id: tagcheck
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if git rev-parse "v${VERSION}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update files and Commit
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          sed -i "s|Release-v[0-9.]*-green|Release-v${VERSION}-green|g" README.md
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git diff --staged --quiet || git commit -m "chore: update version to v${VERSION}"
+          git push
+
+          if git rev-parse "v${VERSION}" >/dev/null 2>&1; then
+            echo "Tag v${VERSION} already exists."
+          else
+            git tag "v${VERSION}"
+            git push origin "v${VERSION}"
+          fi
+          
+      - name: Build Binaries & Package Bundles
+        run: |
+          mkdir dist
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Wrapper scripts and config to include in bundles
+          FILES="gorrent-run.sh gorrent-run.bat config.json docker-compose.yml"
+
+          # Windows (Zip Bundle)
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o gorrent-daemon.exe ./cmd/daemon
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o gorrent.exe ./cmd/cli
+          zip -q dist/gorrent-${VERSION}-windows-amd64.zip gorrent-daemon.exe gorrent.exe $FILES
+          rm gorrent-daemon.exe gorrent.exe
+
+          # Linux AMD64 (Tar.gz Bundle)
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o gorrent-daemon ./cmd/daemon
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o gorrent ./cmd/cli
+          tar -czf dist/gorrent-${VERSION}-linux-amd64.tar.gz gorrent-daemon gorrent $FILES
+
+          # Linux ARM64 (Tar.gz Bundle)
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o gorrent-daemon ./cmd/daemon
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o gorrent ./cmd/cli
+          tar -czf dist/gorrent-${VERSION}-linux-arm64.tar.gz gorrent-daemon gorrent $FILES
+
+          # macOS Intel (Tar.gz Bundle)
+          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o gorrent-daemon ./cmd/daemon
+          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o gorrent ./cmd/cli
+          tar -czf dist/gorrent-${VERSION}-darwin-amd64.tar.gz gorrent-daemon gorrent $FILES
+
+          # macOS Apple Silicon (Tar.gz Bundle)
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o gorrent-daemon ./cmd/daemon
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o gorrent ./cmd/cli
+          tar -czf dist/gorrent-${VERSION}-darwin-arm64.tar.gz gorrent-daemon gorrent $FILES
+          rm gorrent-daemon gorrent
+
+          # Source Code Zip
+          git archive --format=zip -o dist/gorrent-source-${VERSION}.zip HEAD
+
+          # Generate SHA-256 signatures
+          cd dist
+          sha256sum * > gorrent-${VERSION}-checksums.txt
+          cd ..
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: "v${{ steps.version.outputs.version }}: ${{ steps.title.outputs.title }}"
+          body: |
+            ${{ steps.notes.outputs.notes }}
+
+            ---
+            ## 📦 Downloads
+
+            | Operating System | Download Archive |
+            |-------------------|------------------|
+            | **Windows (x64)** | `gorrent-${{ steps.version.outputs.version }}-windows-amd64.zip` |
+            | **Linux (x64)** | `gorrent-${{ steps.version.outputs.version }}-linux-amd64.tar.gz` |
+            | **Linux (ARM64)** | `gorrent-${{ steps.version.outputs.version }}-linux-arm64.tar.gz` |
+            | **macOS (Intel)** | `gorrent-${{ steps.version.outputs.version }}-darwin-amd64.tar.gz` |
+            | **macOS (Apple Silicon)** | `gorrent-${{ steps.version.outputs.version }}-darwin-arm64.tar.gz` |
+
+            **Docker Images (multi‑arch: amd64 + arm64):**
+            - **GHCR:** `docker pull ghcr.io/${{ github.repository }}:v${{ steps.version.outputs.version }}`
+            - **GHCR Latest:** `docker pull ghcr.io/${{ github.repository }}:latest`
+
+            View [Full CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)
+          files: dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker images
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:v${{ steps.version.outputs.version }}

@@ -1,0 +1,21 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.0.0] - 2026-07-07 — GOrrent is Alive!
+
+### Added
+- **Gorrent Engine**: Initial release of the Go rewrite, focused on a headless, automation-first architecture.
+- **REST API**: Endpoints (`/api/search`, `/api/download`, `/api/status`) designed for seamless AI integration.
+- **CLI Wrappers**: Included `gorrent-run.sh` and `gorrent-run.bat` for transparent local usage.
+- **Concurrent Scraping**: 9 supported sources out of the box (YTS, 1337x, Nyaa, PirateBay, FitGirl, RuTracker, SubsPlease, EZTV, TorrentsCSV).
+- **Agnostic Scoring Engine**: Dynamic regex word-boundary filtering loaded from `config.json` for precise ranking.
+- **Embedded P2P Client**: Fully integrated BitTorrent client using `anacrolix/torrent` with a 30-second Dead Torrent Protection feature.
+- **DoH (DNS-over-HTTPS)**: Built-in hijacking of HTTP transport to evade ISP censorship via Cloudflare or other public resolvers.
+- **Circuit Breakers**: Intelligent cooldown for failing trackers to prevent search hangs.
+- **AI Native Skills**: Packaged definitions for OpenClaw (`docs/openclaw-skill/SKILL.md` / `openapi.yaml`) and Claude Desktop (`docs/claude-skill/skill.md`).
+- **CI/CD Pipelines**: Automated GitHub Actions for fast testing, multi-arch binary generation (`amd64`/`arm64`), and GHCR Docker publishing.
+- **Docker Scratch Build**: Microscopic zero-dependency container deployment.

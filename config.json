@@ -1,0 +1,21 @@
+{
+  "daemon": {
+    "port": 7800
+  },
+  "scraper": {
+    "dns": "cloudflare",
+    "rutracker_cookie": "",
+    "sources": [
+      "yts", "1337x", "nyaa", "piratebay", 
+      "fitgirl", "subsplease", "torrentscsv", "rutracker"
+    ],
+    "filters": {
+      "language": "latino, castellano, multi-subs, es",
+      "resolution": "1080p, 1080i",
+      "min_seeders": "5"
+    }
+  },
+  "torrent": {
+    "download_dir": "/downloads"
+  }
+}

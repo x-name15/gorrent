@@ -1,0 +1,18 @@
+# Binaries
+/bin/
+gorrent
+gorrent.exe
+gorrent-daemon
+gorrent-daemon.exe
+
+# Torrent Client Data
+.torrent.bolt.db
+/downloads/
+
+# Go
+vendor/
+go.sum
+
+# OS
+.DS_Store
+Thumbs.db

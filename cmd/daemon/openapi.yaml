@@ -1,0 +1,73 @@
+openapi: 3.0.0
+info:
+  title: Gorrent API
+  description: Headless torrent search and download daemon for Openclaw automation.
+  version: 1.0.0
+servers:
+  - url: http://localhost:7800
+    description: Gorrent Daemon
+paths:
+  /api/search:
+    get:
+      summary: Search for torrents across enabled scrapers.
+      parameters:
+        - name: q
+          in: query
+          description: Search query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful search
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TorrentResult'
+  /api/download:
+    post:
+      summary: Add a torrent to download.
+      description: Provide either a 'magnet' link directly, or an 'auto' query to automatically search and pick the best result.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                magnet:
+                  type: string
+                auto:
+                  type: string
+      responses:
+        '200':
+          description: Download started
+  /api/status:
+    get:
+      summary: Get status of active downloads.
+      responses:
+        '200':
+          description: List of active torrents
+components:
+  schemas:
+    TorrentResult:
+      type: object
+      properties:
+        infoHash:
+          type: string
+        name:
+          type: string
+        sizeBytes:
+          type: integer
+        seeders:
+          type: integer
+        leechers:
+          type: integer
+        source:
+          type: string
+        magnet:
+          type: string
+        score:
+          type: integer

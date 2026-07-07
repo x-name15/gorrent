@@ -1,0 +1,74 @@
+name: Gorrent CI
+
+on:
+  push:
+    branches: [ "main", "feature/*" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: false
+
+      - name: Verify Code Formatting
+        run: |
+          if [ -n "$(gofmt -l .)" ]; then
+            echo "These files are not formatted properly:"
+            gofmt -l .
+            echo "Please run 'gofmt -w .' locally and commit the changes."
+            exit 1
+          fi
+
+      - name: Verify go.mod is tidy
+        run: |
+          go mod tidy
+          if [ -n "$(git status --porcelain go.mod go.sum)" ]; then
+            echo "go.mod or go.sum is not tidy. Please run 'go mod tidy' and commit the changes."
+            git diff
+            exit 1
+          fi
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Build Daemon Binary (AMD64)
+        run: CGO_ENABLED=0 go build -ldflags="-s -w" -o gorrent-daemon ./cmd/daemon
+
+      - name: Build CLI Binary (AMD64)
+        run: CGO_ENABLED=0 go build -ldflags="-s -w" -o gorrent ./cmd/cli
+
+      - name: Verify Docker Image Size (AMD64)
+        run: |
+          echo "Building Docker image for size verification..."
+          docker build -t gorrent:ci-check .
+
+          echo ""
+          echo "DOCKER IMAGE SIZE REPORT:"
+          docker images gorrent:ci-check
+
+          SIZE_BYTES=$(docker inspect -f "{{ .Size }}" gorrent:ci-check)
+          SIZE_MB=$(awk "BEGIN {printf \"%.2f\", ${SIZE_BYTES}/1048576}")
+
+          echo ""
+          echo "Calculated Size: ${SIZE_MB} MB"
+
+          # anacrolix/torrent can result in ~25-30MB statically linked binaries. We have 2 binaries. 
+          # We'll set a 75MB ceiling for the scratch container.
+          if awk "BEGIN {exit (${SIZE_MB} > 75.0 ? 0 : 1)}"; then
+            echo "ERROR: The Docker image (${SIZE_MB} MB) exceeded the strict 75MB limit!"
+            exit 1
+          fi
+
+          echo "SUCCESS: Image size is within the allowed limits."
+
+      - name: Docker Build Check
+        run: docker build -t gorrent:test .

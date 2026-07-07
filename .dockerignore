@@ -1,0 +1,16 @@
+.git
+.gitignore
+.dockerignore
+.github
+docs/
+*.md
+.torrent.bolt.db
+downloads/
+bin/
+gorrent
+gorrent.exe
+gorrent-daemon
+gorrent-daemon.exe
+gorrent.sh
+gorrent.bat
+docker-compose.yml

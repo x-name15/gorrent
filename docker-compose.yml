@@ -1,0 +1,10 @@
+services:
+  gorrent:
+    build: .
+    container_name: gorrent
+    ports:
+      - "7800:7800"
+    volumes:
+      - ./config.json:/config.json
+      - ./downloads:/downloads
+    restart: unless-stopped
