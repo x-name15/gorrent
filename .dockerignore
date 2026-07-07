@@ -3,6 +3,7 @@
 .dockerignore
 .github
 docs/
+skills-for-ai/
 *.md
 .torrent.bolt.db
 downloads/

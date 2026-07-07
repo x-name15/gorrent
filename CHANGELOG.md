@@ -5,13 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-07-07 — Hermes Skill Support
+
+### Added
+- **Hermes Agent Integration**: Added native `SKILL.md` support in `skills-for-ai/hermes-skill/` to allow Hermes Agent to easily control the Gorrent daemon via the CLI wrappers.
+
+### Changed
+- **Docker Image Optimization**: Added the `skills-for-ai/` directory to `.dockerignore` to prevent bloating the production container with AI-specific metadata and instructions.
+
+---
 ## [1.0.2] - 2026-07-07 — Ups, hotfixes Part 2!
+
 ### Fixed
 - **Release Pipeline**: Fixed script filenames (`gorrent.sh` and `gorrent.bat`) in the GitHub Actions bundle step, which caused the v1.0.1 release to halt before publishing Docker images and GitHub Release archives.
 - **Release Pipeline**: Added `go mod tidy` step before compilation to resolve missing `go.sum` entries for multi-arch/OS builds.
 
 ---
 ## [1.0.1] - 2026-07-07 — Ups, hotfixes!
+
 ### Fixed
 - **FitGirl Scraper**: Removed duplicate HTTP requests and deprecated stream-of-consciousness code comments for improved scraping performance.
 - **RuTracker Scraper**: Cleaned up deprecated internal monologue comments regarding CP1251 encoding.

@@ -90,8 +90,9 @@ Content-Type: application/json
 ## AI Native Integrations
 
 Gorrent exposes interfaces specifically designed for AI agents:
-*   **OpenClaw**: The `docs/openclaw-skill/SKILL.md` file and `openapi.yaml` endpoint allow OpenClaw agents to manage downloads natively via the API.
-*   **Claude Desktop**: The `docs/claude-skill` folder provides a Custom Skill for Claude. By using Code Execution, Claude can invoke the local CLI wrapper (`./gorrent.sh`) to automate media fetching for you via the terminal.
+*   **OpenClaw**: The `skills-for-ai/openclaw-skill/SKILL.md` file and `openapi.yaml` endpoint allow OpenClaw agents to manage downloads natively via the API.
+*   **Claude Desktop**: The `skills-for-ai/claude-skill` folder provides a Custom Skill for Claude. By using Code Execution, Claude can invoke the local CLI wrapper (`./gorrent.sh`) to automate media fetching for you via the terminal.
+*   **Hermes Agent**: The `skills-for-ai/hermes-skill/SKILL.md` file provides a native skill definition tailored for Hermes Agent's CLI automation capabilities.
 
 
 ## Deployment Guide (Docker)
