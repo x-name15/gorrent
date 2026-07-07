@@ -6,7 +6,7 @@
 [![Build Status](https://img.shields.io/github/actions/workflow/status/x-name15/gorrent/entry.yaml?style=flat-square&logo=githubactions&logoColor=white)](https://github.com/x-name15/gorrent/actions)
 [![Docker Image Size](https://img.shields.io/badge/Image-%3C30MB-informational?style=flat-square&logo=docker)](https://github.com/x-name15/gorrent/pkgs/container/gorrent)
 
-The original [torlink](https://github.com/baairon/torlink) is an excellent project that deliberately focuses on being an interactive terminal application. Later, a fork of [torlink](https://github.com/WarlaxZ/torlink) expanded upon it by adding features and wider tracker support.
+The original [torlink](https://github.com/baairon/torlink) by [@baairon](https://github.com/baairon) is an excellent project that deliberately focuses on being an interactive terminal application. Later, a fork of [torlink](https://github.com/WarlaxZ/torlink) by [@WarlaxZ](https://github.com/WarlaxZ) expanded upon it by adding features and wider tracker support.
 
 Rather than trying to change their core interactive philosophy, **Gorrent** takes inspiration from both projects and explores a completely different direction: a headless, automation-first implementation written entirely in Go for homelab environments.
 
