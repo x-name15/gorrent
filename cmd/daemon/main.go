@@ -3,8 +3,8 @@ package main
 import (
 	"github.com/x-name15/gorrent/pkg/search"
 
-	_ "embed"
 	"bytes"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"log"
