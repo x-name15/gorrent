@@ -157,7 +157,7 @@ If you don't provide a `config.json`, Gorrent will load sane defaults, but mappi
 
 ## Optional CLI
 
-If you do want to run it manually, it ships with CLI wrappers (`gorrent.sh` / `.bat`) that tunnel transparently into the Docker container.
+If you do want to run it manually, it ships with CLI wrappers (`gorrent.sh` / `gorrent.bat`) that tunnel transparently into the Docker container.
 
 ```bash
 $ ./gorrent.sh download --auto "Arcane S01"
