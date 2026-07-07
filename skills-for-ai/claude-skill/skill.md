@@ -14,6 +14,8 @@ To interact with Gorrent, use the provided wrapper scripts (`./gorrent.sh` on Li
 - **Auto-download best result**: `./gorrent.sh download --auto <query>`
 - **Check Status**: `./gorrent.sh status`
 
+**Async Notifications:** If your environment supports incoming webhooks, you can append `--callback <YOUR_WEBHOOK_URL>` to any download command. Gorrent will send a POST request to that URL when the download is 100% complete, allowing you to notify the user asynchronously.
+
 ### REST API
 If the CLI wrapper is not available or you prefer HTTP requests, the daemon listens on `http://localhost:7800`.
 - **Search**: `curl "http://localhost:7800/api/search?q=<query>"`

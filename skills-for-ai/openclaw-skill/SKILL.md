@@ -21,6 +21,8 @@ Body: `{"magnet": "magnet:?xt=urn:..."}` or `{"auto": "The Matrix"}`
 Use this to start a download.
 If the user asks to "download X", you can just send `{"auto": "X"}` and Gorrent will automatically find and start the best match.
 
+**Async Notifications:** If your platform supports receiving webhooks, include `"callback": "http://your-webhook-url"` in the JSON payload so Gorrent can notify you when the download hits 100%. Tell the user you will notify them when it's done, and do so once you receive the webhook.
+
 ### 3. Status
 Endpoint: `GET http://localhost:7800/api/status`
 Use this to check the status of active downloads.

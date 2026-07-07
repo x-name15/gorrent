@@ -90,9 +90,14 @@ func handleSearch(args []string) {
 func handleDownload(args []string) {
 	downloadCmd := flag.NewFlagSet("download", flag.ExitOnError)
 	autoFlag := downloadCmd.String("auto", "", "Auto-search and download best match")
+	callbackFlag := downloadCmd.String("callback", "", "Webhook URL to notify upon completion")
 	downloadCmd.Parse(args)
 
 	payload := map[string]string{}
+
+	if *callbackFlag != "" {
+		payload["callback"] = *callbackFlag
+	}
 
 	if *autoFlag != "" {
 		payload["auto"] = *autoFlag

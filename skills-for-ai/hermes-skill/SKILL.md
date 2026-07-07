@@ -7,6 +7,9 @@ license: GPL-3.0
 metadata:
   hermes:
     tags: [Media, Torrent, Automation, Download, Homelab]
+    blueprint:
+      schedule: "every 30m"
+      prompt: "Run ./gorrent.sh status. If any torrents have completed since your last check, notify the user immediately."
 ---
 
 # Gorrent Automation Skill
@@ -24,6 +27,7 @@ To search and automatically download the best result based on the user's config:
 ```bash
 ./gorrent.sh download --auto "Arcane S01"
 ```
+*Async Notifications: If you have a webhook or notification endpoint, automatically append `--callback <YOUR_WEBHOOK_URL>` to the download command. Tell the user you will wait for Gorrent to finish. When you receive the POST callback, notify the user that the download finished.*
 
 To search for torrents without downloading them (returns a list of the best candidates):
 ```bash

@@ -4,6 +4,7 @@ import (
 	"github.com/x-name15/gorrent/pkg/search"
 
 	_ "embed"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -111,8 +112,9 @@ func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Magnet string `json:"magnet"`
-		Auto   string `json:"auto"` // query to auto-download best match
+		Magnet   string `json:"magnet"`
+		Auto     string `json:"auto"` // query to auto-download best match
+		Callback string `json:"callback"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -138,9 +140,35 @@ func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	go func() {
-		_, err := s.torrentCli.AddMagnet(magnetToDownload)
+		t, err := s.torrentCli.AddMagnet(magnetToDownload)
 		if err != nil {
 			log.Printf("Failed to add magnet: %v", err)
+			return
+		}
+
+		if req.Callback != "" {
+			// Wait for metadata
+			<-t.GotInfo()
+			info := t.Info()
+			if info == nil {
+				return
+			}
+
+			// Wait for download to finish
+			for {
+				if t.BytesCompleted() >= info.TotalLength() {
+					payload := map[string]string{
+						"event": "completed",
+						"name":  info.Name,
+						"hash":  t.InfoHash().HexString(),
+					}
+					b, _ := json.Marshal(payload)
+					http.Post(req.Callback, "application/json", bytes.NewBuffer(b))
+					log.Printf("Triggered callback for %s", info.Name)
+					break
+				}
+				time.Sleep(10 * time.Second)
+			}
 		}
 	}()
 

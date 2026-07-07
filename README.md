@@ -159,14 +159,12 @@ If you don't provide a `config.json`, Gorrent will load sane defaults, but mappi
 
 ## Optional CLI
 
-If you do want to run it manually, it ships with CLI wrappers (`gorrent.sh` / `gorrent.bat`) that tunnel transparently into the Docker container.
-
-```bash
-$ ./gorrent.sh download --auto "Arcane S01"
-
-Sending auto-download request for: Arcane S01
-Download started successfully!
-```
+If you do want to run it manually, it ships with CLI Commands:
+- **Search**: `./gorrent.sh search <query>`
+- **Download by magnet**: `./gorrent.sh download "magnet:?xt=urn:btih:..."`
+- **Auto-download best result**: `./gorrent.sh download --auto <query>`
+- **Zero-config AI callback**: `./gorrent.sh download --auto <query> --callback <WEBHOOK_URL>` (Daemon will HTTP POST to this URL when download finishes)
+- **Check Status**: `./gorrent.sh status`
 
 ## Releases
 
