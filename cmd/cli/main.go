@@ -15,14 +15,16 @@ import (
 	"github.com/x-name15/gorrent/pkg/search"
 )
 
-var DaemonURL = "http://localhost:7800" // default
-var APIKey = ""
+var DaemonURL string
+var APIKey string
 
 func init() {
-	if cfg, err := config.Load("config.json"); err == nil {
-		DaemonURL = fmt.Sprintf("http://localhost:%d", cfg.Daemon.Port)
-		APIKey = cfg.Daemon.APIKey
+	cfg, err := config.Load("config.json")
+	if err != nil {
+		cfg = config.Default()
 	}
+	DaemonURL = fmt.Sprintf("http://localhost:%d", cfg.Daemon.Port)
+	APIKey = cfg.Daemon.APIKey
 }
 
 func doRequest(req *http.Request) (*http.Response, error) {
