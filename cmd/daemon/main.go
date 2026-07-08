@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
+	"regexp"
 	"time"
 
 	"github.com/x-name15/gorrent/pkg/config"
@@ -72,9 +74,10 @@ func main() {
 		torrentCli: torrentCli,
 	}
 
-	http.HandleFunc("/api/search", srv.handleSearch)
-	http.HandleFunc("/api/download", srv.handleDownload)
-	http.HandleFunc("/api/status", srv.handleStatus)
+	http.HandleFunc("/api/search", srv.authMiddleware(srv.handleSearch))
+	http.HandleFunc("/api/download", srv.authMiddleware(srv.handleDownload))
+	http.HandleFunc("/api/status", srv.authMiddleware(srv.handleStatus))
+	http.HandleFunc("/api/torrent", srv.authMiddleware(srv.handleStop))
 	http.HandleFunc("/api/docs", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/yaml")
 		w.Write(openapiYAML)
@@ -84,6 +87,19 @@ func main() {
 	log.Printf("Gorrent Daemon listening on %s...", addr)
 	if err := http.ListenAndServe(addr, nil); err != nil {
 		log.Fatal(err)
+	}
+}
+
+func (s *Server) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if s.cfg.Daemon.APIKey != "" {
+			key := r.Header.Get("X-API-Key")
+			if key != s.cfg.Daemon.APIKey && r.URL.Query().Get("apikey") != s.cfg.Daemon.APIKey {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+		}
+		next(w, r)
 	}
 }
 
@@ -115,6 +131,7 @@ func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
 		Magnet   string `json:"magnet"`
 		Auto     string `json:"auto"` // query to auto-download best match
 		Callback string `json:"callback"`
+		Category string `json:"category"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -139,8 +156,20 @@ func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 1. Accept bare infohashes
+	if len(magnetToDownload) == 40 && regexp.MustCompile(`^[a-fA-F0-9]{40}$`).MatchString(magnetToDownload) {
+		magnetToDownload = "magnet:?xt=urn:btih:" + magnetToDownload
+	}
+
+	// 2. Add custom trackers
+	if len(s.cfg.Torrent.Trackers) > 0 {
+		for _, tr := range s.cfg.Torrent.Trackers {
+			magnetToDownload += "&tr=" + url.QueryEscape(tr)
+		}
+	}
+
 	go func() {
-		t, err := s.torrentCli.AddMagnet(magnetToDownload)
+		t, err := s.torrentCli.AddMagnet(magnetToDownload, req.Category)
 		if err != nil {
 			log.Printf("Failed to add magnet: %v", err)
 			return
@@ -185,4 +214,25 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	stats := s.torrentCli.Status()
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(stats)
+}
+
+func (s *Server) handleStop(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	hash := r.URL.Query().Get("hash")
+	if hash == "" {
+		http.Error(w, "Missing hash parameter", http.StatusBadRequest)
+		return
+	}
+
+	if err := s.torrentCli.StopTorrent(hash); err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "stopped", "hash": hash})
 }

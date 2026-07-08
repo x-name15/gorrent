@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.5] - 2026-07-08 — Auto-Export, Security & Download Management
+
+### Added
+- **Auto-Export .torrent files**: Gorrent can now optionally export a `.torrent` backup file into your `downloads` directory the moment it finishes fetching the metadata for any magnet link (Issue #61). This feature is disabled by default to prevent clutter, and can be enabled by setting `"auto_export_torrent": true` in the `torrent` section of your `config.json`.
+- **Stop & Delete Torrents**: Added a new `DELETE /api/torrent?hash=...` endpoint and a `./gorrent.sh stop <hash>` CLI command to abort and clean up active downloads.
+- **API Key Security**: Added optional API Key authentication. Set `"api_key": "your_secret"` in the `daemon` config block to secure the REST API against unauthorized access on your local network. The CLI wrapper automatically uses it.
+- **Bare Infohash Support**: Gorrent can now accept a raw 40-character infohash instead of a full magnet link for downloads 
+- **Custom Trackers**: You can now define an array of `"trackers"` in the `torrent` block of your `config.json`. These trackers will be automatically injected into every magnet link processed by the daemon, boosting DHT peer discovery
+- **Category-Based Directories**: The CLI and API now support an optional `--category` flag (e.g. `--category movies`). Gorrent will save the torrent in a subfolder named after the category (e.g. `/downloads/movies`), or map it to a specific directory if defined in the new `"category_dirs"` config object. Perfect for homelab media server organization!
+
+---
 ## [1.1.1] - 2026-07-07 — Zero-Config AI Callbacks
 
 ### Added

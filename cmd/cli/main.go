@@ -16,11 +16,21 @@ import (
 )
 
 var DaemonURL = "http://localhost:7800" // default
+var APIKey = ""
 
 func init() {
 	if cfg, err := config.Load("config.json"); err == nil {
 		DaemonURL = fmt.Sprintf("http://localhost:%d", cfg.Daemon.Port)
+		APIKey = cfg.Daemon.APIKey
 	}
+}
+
+func doRequest(req *http.Request) (*http.Response, error) {
+	if APIKey != "" {
+		req.Header.Set("X-API-Key", APIKey)
+	}
+	client := &http.Client{}
+	return client.Do(req)
 }
 
 func main() {
@@ -38,6 +48,8 @@ func main() {
 		handleDownload(os.Args[2:])
 	case "status":
 		handleStatus()
+	case "stop":
+		handleStop(os.Args[2:])
 	default:
 		fmt.Printf("Unknown command: %s\n", command)
 		printUsage()
@@ -52,7 +64,8 @@ Commands:
   search <query>          Search for torrents
   download --auto <query> Auto-search and download the best match
   download <magnet>       Download a specific magnet link
-  status                  Show active downloads`)
+  status                  Show active downloads
+  stop <hash>             Stop and delete an active download`)
 }
 
 func handleSearch(args []string) {
@@ -63,7 +76,8 @@ func handleSearch(args []string) {
 	query := args[0]
 
 	u := fmt.Sprintf("%s/api/search?q=%s", DaemonURL, url.QueryEscape(query))
-	resp, err := http.Get(u)
+	req, _ := http.NewRequest(http.MethodGet, u, nil)
+	resp, err := doRequest(req)
 	if err != nil {
 		log.Fatal("Failed to connect to daemon:", err)
 	}
@@ -91,12 +105,17 @@ func handleDownload(args []string) {
 	downloadCmd := flag.NewFlagSet("download", flag.ExitOnError)
 	autoFlag := downloadCmd.String("auto", "", "Auto-search and download best match")
 	callbackFlag := downloadCmd.String("callback", "", "Webhook URL to notify upon completion")
+	categoryFlag := downloadCmd.String("category", "", "Save torrent to a specific category folder")
 	downloadCmd.Parse(args)
 
 	payload := map[string]string{}
 
 	if *callbackFlag != "" {
 		payload["callback"] = *callbackFlag
+	}
+
+	if *categoryFlag != "" {
+		payload["category"] = *categoryFlag
 	}
 
 	if *autoFlag != "" {
@@ -111,7 +130,9 @@ func handleDownload(args []string) {
 	}
 
 	body, _ := json.Marshal(payload)
-	resp, err := http.Post(fmt.Sprintf("%s/api/download", DaemonURL), "application/json", bytes.NewBuffer(body))
+	req, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/download", DaemonURL), bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := doRequest(req)
 	if err != nil {
 		log.Fatal("Failed to connect to daemon:", err)
 	}
@@ -126,7 +147,8 @@ func handleDownload(args []string) {
 }
 
 func handleStatus() {
-	resp, err := http.Get(fmt.Sprintf("%s/api/status", DaemonURL))
+	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api/status", DaemonURL), nil)
+	resp, err := doRequest(req)
 	if err != nil {
 		log.Fatal("Failed to connect to daemon:", err)
 	}
@@ -155,4 +177,26 @@ func handleStatus() {
 		fmt.Printf("- %s\n  Progress: %.1f%% (%.2f / %.2f MB) | Peers: %.0f\n",
 			s["name"], progress, dl/1024/1024, total/1024/1024, peers)
 	}
+}
+
+func handleStop(args []string) {
+	if len(args) == 0 {
+		fmt.Println("Error: missing hash")
+		return
+	}
+	hash := args[0]
+
+	req, _ := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/api/torrent?hash=%s", DaemonURL, hash), nil)
+	resp, err := doRequest(req)
+	if err != nil {
+		log.Fatal("Failed to connect to daemon:", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		log.Fatalf("Daemon error: %s", string(b))
+	}
+
+	fmt.Printf("Successfully stopped torrent: %s\n", hash)
 }

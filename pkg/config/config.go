@@ -14,7 +14,8 @@ type Config struct {
 
 // DaemonConfig holds settings for the background service.
 type DaemonConfig struct {
-	Port int `json:"port"`
+	Port   int    `json:"port"`
+	APIKey string `json:"api_key"`
 }
 
 // ScraperConfig holds settings for the search engines.
@@ -27,7 +28,10 @@ type ScraperConfig struct {
 
 // TorrentConfig holds settings for downloads.
 type TorrentConfig struct {
-	DownloadDir string `json:"download_dir"`
+	DownloadDir  string            `json:"download_dir"`
+	AutoExport   bool              `json:"auto_export_torrent"`
+	Trackers     []string          `json:"trackers"`
+	CategoryDirs map[string]string `json:"category_dirs"`
 }
 
 // Load reads and parses a JSON config file.

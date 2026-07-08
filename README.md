@@ -1,6 +1,6 @@
-# ⛵ GOrrent
+# ⛵ Gorrent
 
-[![Release](https://img.shields.io/badge/Release-v1.1.1-green?style=flat-square)](https://github.com/x-name15/gorrent/releases)
+[![Release](https://img.shields.io/badge/Release-v1.1.0-green?style=flat-square)](https://github.com/x-name15/gorrent/releases)
 [![Go Version](https://img.shields.io/badge/Go-1.25-00ADD8?style=flat-square&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/License-GPLv3-blue?style=flat-square)](LICENSE)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/x-name15/gorrent/entry.yaml?style=flat-square&logo=githubactions&logoColor=white)](https://github.com/x-name15/gorrent/actions)
@@ -24,6 +24,7 @@ Rather than trying to change their core interactive philosophy, **Gorrent** take
 | OpenClaw            | ✅         |
 | Claude Skill        | ✅         |
 | Hermes Skill        | ✅         |
+| Auto .torrent backup| ✅         |
 
 ## Fault-Tolerant Architecture
 
@@ -128,7 +129,8 @@ services:
 ```json
 {
   "daemon": {
-    "port": 7800
+    "port": 7800,
+    "api_key": "my_super_secret_key"
   },
   "scraper": {
     "dns": "cloudflare",
@@ -144,7 +146,15 @@ services:
     }
   },
   "torrent": {
-    "download_dir": "/downloads"
+    "download_dir": "/downloads",
+    "auto_export_torrent": true,
+    "trackers": [
+      "udp://tracker.opentrackr.org:1337/announce"
+    ],
+    "category_dirs": {
+      "movies": "/mnt/media/movies",
+      "tvshows": "/mnt/media/tvshows"
+    }
   }
 }
 ```
@@ -165,6 +175,7 @@ If you do want to run it manually, it ships with CLI Commands:
 - **Auto-download best result**: `./gorrent.sh download --auto <query>`
 - **Zero-config AI callback**: `./gorrent.sh download --auto <query> --callback <WEBHOOK_URL>` (Daemon will HTTP POST to this URL when download finishes)
 - **Check Status**: `./gorrent.sh status`
+- **Stop and remove a download**: `./gorrent.sh stop <hash>`
 
 ## Releases
 
@@ -176,4 +187,4 @@ GOrrent is licensed under the GPL v3. See [`LICENSE`](./LICENSE) for details.
 
 ## Credits
 
-**Author:** Mr Jacket 
+**Author:** Mr Jacket / Felix Manrique

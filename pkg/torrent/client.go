@@ -3,9 +3,12 @@ package torrent
 import (
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/anacrolix/torrent"
+	"github.com/anacrolix/torrent/storage"
 	"github.com/x-name15/gorrent/pkg/config"
 )
 
@@ -33,8 +36,24 @@ func NewClient(cfg *config.TorrentConfig) (*Client, error) {
 }
 
 // AddMagnet adds a torrent via magnet link and starts downloading.
-func (c *Client) AddMagnet(magnet string) (*torrent.Torrent, error) {
-	t, err := c.tc.AddMagnet(magnet)
+func (c *Client) AddMagnet(magnet string, category string) (*torrent.Torrent, error) {
+	spec, err := torrent.TorrentSpecFromMagnetUri(magnet)
+	if err != nil {
+		return nil, err
+	}
+
+	targetPath := c.cfg.DownloadDir
+	if category != "" {
+		if mappedPath, ok := c.cfg.CategoryDirs[category]; ok {
+			targetPath = mappedPath
+		} else {
+			targetPath = filepath.Join(c.cfg.DownloadDir, category)
+		}
+	}
+
+	spec.Storage = storage.NewFile(targetPath)
+
+	t, _, err := c.tc.AddTorrentSpec(spec)
 	if err != nil {
 		return nil, err
 	}
@@ -43,6 +62,19 @@ func (c *Client) AddMagnet(magnet string) (*torrent.Torrent, error) {
 	select {
 	case <-t.GotInfo():
 		// Info downloaded, we can proceed
+		info := t.Info()
+		if info != nil && c.cfg.AutoExport {
+			// Auto-export .torrent file
+			filename := filepath.Join(c.cfg.DownloadDir, info.Name+".torrent")
+			if f, err := os.Create(filename); err == nil {
+				mi := t.Metainfo()
+				mi.Write(f)
+				f.Close()
+				log.Printf("Exported .torrent file: %s", filename)
+			} else {
+				log.Printf("Failed to export .torrent file: %v", err)
+			}
+		}
 	case <-time.After(30 * time.Second):
 		t.Drop() // Clean up resources
 		return nil, fmt.Errorf("timeout waiting for torrent metadata (0 seeders or dead torrent)")
@@ -52,6 +84,17 @@ func (c *Client) AddMagnet(magnet string) (*torrent.Torrent, error) {
 	t.DownloadAll()
 
 	return t, nil
+}
+
+// StopTorrent drops an active torrent from the client.
+func (c *Client) StopTorrent(hash string) error {
+	for _, t := range c.tc.Torrents() {
+		if t.InfoHash().HexString() == hash {
+			t.Drop()
+			return nil
+		}
+	}
+	return fmt.Errorf("torrent not found")
 }
 
 // Status returns info about all current torrents
