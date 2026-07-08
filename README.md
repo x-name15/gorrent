@@ -1,10 +1,14 @@
 # ⛵ Gorrent
 
-[![Release](https://img.shields.io/badge/Release-v1.1.5-green?style=flat-square)](https://github.com/x-name15/gorrent/releases)
+[![Release](https://img.shields.io/badge/Release-v1.1.0-green?style=flat-square)](https://github.com/x-name15/gorrent/releases)
 [![Go Version](https://img.shields.io/badge/Go-1.25-00ADD8?style=flat-square&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/License-GPLv3-blue?style=flat-square)](LICENSE)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/x-name15/gorrent/entry.yaml?style=flat-square&logo=githubactions&logoColor=white)](https://github.com/x-name15/gorrent/actions)
 [![Docker Image Size](https://img.shields.io/badge/Image-%3C30MB-informational?style=flat-square&logo=docker)](https://github.com/x-name15/gorrent/pkgs/container/gorrent)
+
+**Gorrent** is a headless, automation-first BitTorrent daemon built in Go. It provides a robust REST API and WebSocket interface to search, score, and download torrents automatically from multiple trackers. Designed specifically for homelab environments and AI agents, Gorrent handles the heavy lifting of peer discovery, bandwidth throttling, and asynchronous file management without requiring a traditional WebUI or interactive terminal.
+
+## Origins
 
 The original [torlink](https://github.com/baairon/torlink) by [@baairon](https://github.com/baairon) is an excellent project that deliberately focuses on being an interactive terminal application. Later, a fork of [torlink](https://github.com/WarlaxZ/torlink) by [@WarlaxZ](https://github.com/WarlaxZ) expanded upon it by adding features and wider tracker support.
 
@@ -148,6 +152,17 @@ services:
   "torrent": {
     "download_dir": "/downloads",
     "auto_export_torrent": true,
+    "max_download_rate": 5000,
+    "max_upload_rate": 0,
+    "sources": [
+      "yts", "1337x", "nyaa", "piratebay", 
+      "fitgirl", "subsplease", "torrentscsv", "rutracker"
+    ],
+    "filters": {
+      "language": "latino, castellano, multi-subs, es",
+      "resolution": "1080p, 1080i",
+      "min_seeders": "5"
+    },
     "trackers": [
       "udp://tracker.opentrackr.org:1337/announce"
     ],

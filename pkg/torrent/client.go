@@ -10,6 +10,7 @@ import (
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/storage"
 	"github.com/x-name15/gorrent/pkg/config"
+	"golang.org/x/time/rate"
 )
 
 type Client struct {
@@ -23,6 +24,13 @@ func NewClient(cfg *config.TorrentConfig) (*Client, error) {
 	tcConfig.DataDir = cfg.DownloadDir
 	// Disable seed by default for now to save bandwidth, unless requested
 	tcConfig.NoUpload = false
+
+	if cfg.MaxDownloadRate > 0 {
+		tcConfig.DownloadRateLimiter = rate.NewLimiter(rate.Limit(cfg.MaxDownloadRate*1024), 16*1024)
+	}
+	if cfg.MaxUploadRate > 0 {
+		tcConfig.UploadRateLimiter = rate.NewLimiter(rate.Limit(cfg.MaxUploadRate*1024), 16*1024)
+	}
 
 	tc, err := torrent.NewClient(tcConfig)
 	if err != nil {
@@ -95,6 +103,11 @@ func (c *Client) StopTorrent(hash string) error {
 		}
 	}
 	return fmt.Errorf("torrent not found")
+}
+
+// ConnStats returns connection statistics for the torrent client.
+func (c *Client) ConnStats() torrent.ConnStats {
+	return c.tc.ConnStats()
 }
 
 // Status returns info about all current torrents

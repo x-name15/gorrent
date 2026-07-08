@@ -41,6 +41,8 @@ paths:
                   type: string
                 auto:
                   type: string
+                category:
+                  type: string
       responses:
         '200':
           description: Download started
@@ -50,6 +52,37 @@ paths:
       responses:
         '200':
           description: List of active torrents
+  /api/torrent:
+    delete:
+      summary: Stop and remove an active download.
+      parameters:
+        - name: hash
+          in: query
+          description: Infohash of the torrent to stop
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Torrent stopped successfully
+  /api/ws:
+    get:
+      summary: WebSocket endpoint for real-time status streaming.
+      responses:
+        '101':
+          description: Switching Protocols (WebSocket)
+  /health:
+    get:
+      summary: Docker healthcheck endpoint.
+      responses:
+        '200':
+          description: OK
+  /metrics:
+    get:
+      summary: Prometheus metrics endpoint.
+      responses:
+        '200':
+          description: Prometheus text format stats
 components:
   schemas:
     TorrentResult:

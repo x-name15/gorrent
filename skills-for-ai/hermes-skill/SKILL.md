@@ -25,8 +25,10 @@ The wrapper is available as `gorrent.sh` (macOS/Linux) or `gorrent.bat` (Windows
 
 To search and automatically download the best result based on the user's config:
 ```bash
-./gorrent.sh download --auto "Arcane S01"
+./gorrent.sh download --category movies --auto "Arcane S01"
 ```
+*(The `--category` flag is optional but highly recommended to organize media automatically!)*
+
 *Async Notifications: If you have a webhook or notification endpoint, automatically append `--callback <YOUR_WEBHOOK_URL>` to the download command. Tell the user you will wait for Gorrent to finish. When you receive the POST callback, notify the user that the download finished.*
 
 To search for torrents without downloading them (returns a list of the best candidates):
@@ -37,6 +39,11 @@ To search for torrents without downloading them (returns a list of the best cand
 To check the daemon status and active downloads:
 ```bash
 ./gorrent.sh status
+```
+
+To stop and delete an active download:
+```bash
+./gorrent.sh stop <hash>
 ```
 
 **CRITICAL RULES:**

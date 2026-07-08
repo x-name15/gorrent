@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-07-08 — The Homelab Grail Update
+
+### Added
+- **Bandwidth Throttling**: Added `max_download_rate` and `max_upload_rate` (in KB/s) to `config.json` to prevent Gorrent from choking your local network.
+- **WebSocket Endpoint**: Added `ws://localhost:7800/api/ws` to stream live download status at 1Hz, paving the way for real-time Web UIs.
+- **Prometheus Metrics & Healthcheck**: Added `/metrics` exposing raw Prometheus format stats (`gorrent_bytes_downloaded`, etc.) and a `/health` endpoint for Docker auto-healing.
+- **AI Agent Skills Updated**: Fully updated the bundled `.md` skills for Claude, Hermes, and OpenClaw so that AI agents natively understand how to use the new `--category` flag, `stop` commands, `X-API-Key` headers, and WebSockets.
+
+---
 ## [1.1.5] - 2026-07-08 — Auto-Export, Security & Download Management
 
 ### Added

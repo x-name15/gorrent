@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/x-name15/gorrent/pkg/config"
 	"github.com/x-name15/gorrent/pkg/netutil"
 	"github.com/x-name15/gorrent/pkg/scraper"
@@ -78,6 +79,9 @@ func main() {
 	http.HandleFunc("/api/download", srv.authMiddleware(srv.handleDownload))
 	http.HandleFunc("/api/status", srv.authMiddleware(srv.handleStatus))
 	http.HandleFunc("/api/torrent", srv.authMiddleware(srv.handleStop))
+	http.HandleFunc("/api/ws", srv.authMiddleware(srv.handleWS))
+	http.HandleFunc("/health", srv.handleHealth)
+	http.HandleFunc("/metrics", srv.handleMetrics)
 	http.HandleFunc("/api/docs", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/yaml")
 		w.Write(openapiYAML)
@@ -235,4 +239,48 @@ func (s *Server) handleStop(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "stopped", "hash": hash})
+}
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool { return true },
+}
+
+func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
+	c, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Printf("WS upgrade error: %v", err)
+		return
+	}
+	defer c.Close()
+
+	for {
+		stats := s.torrentCli.Status()
+		if err := c.WriteJSON(stats); err != nil {
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
+}
+
+func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+}
+
+func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; version=0.0.4")
+	stats := s.torrentCli.Status()
+	connStats := s.torrentCli.ConnStats()
+
+	fmt.Fprintf(w, "# HELP gorrent_torrents_active Number of active torrents\n")
+	fmt.Fprintf(w, "# TYPE gorrent_torrents_active gauge\n")
+	fmt.Fprintf(w, "gorrent_torrents_active %d\n", len(stats))
+
+	fmt.Fprintf(w, "# HELP gorrent_bytes_downloaded Total bytes downloaded\n")
+	fmt.Fprintf(w, "# TYPE gorrent_bytes_downloaded counter\n")
+	fmt.Fprintf(w, "gorrent_bytes_downloaded %d\n", connStats.BytesReadData.Int64())
+
+	fmt.Fprintf(w, "# HELP gorrent_bytes_uploaded Total bytes uploaded\n")
+	fmt.Fprintf(w, "# TYPE gorrent_bytes_uploaded counter\n")
+	fmt.Fprintf(w, "gorrent_bytes_uploaded %d\n", connStats.BytesWrittenData.Int64())
 }

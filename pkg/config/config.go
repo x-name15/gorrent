@@ -28,10 +28,12 @@ type ScraperConfig struct {
 
 // TorrentConfig holds settings for downloads.
 type TorrentConfig struct {
-	DownloadDir  string            `json:"download_dir"`
-	AutoExport   bool              `json:"auto_export_torrent"`
-	Trackers     []string          `json:"trackers"`
-	CategoryDirs map[string]string `json:"category_dirs"`
+	DownloadDir     string            `json:"download_dir"`
+	AutoExport      bool              `json:"auto_export_torrent"`
+	Trackers        []string          `json:"trackers"`
+	CategoryDirs    map[string]string `json:"category_dirs"`
+	MaxDownloadRate int               `json:"max_download_rate"` // in KB/s
+	MaxUploadRate   int               `json:"max_upload_rate"`   // in KB/s
 }
 
 // Load reads and parses a JSON config file.

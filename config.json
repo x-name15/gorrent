@@ -1,6 +1,7 @@
 {
   "daemon": {
-    "port": 7800
+    "port": 7800,
+    "api_key": ""
   },
   "scraper": {
     "dns": "cloudflare",
@@ -16,6 +17,16 @@
     }
   },
   "torrent": {
-    "download_dir": "/downloads"
+    "download_dir": "/downloads",
+    "auto_export_torrent": false,
+    "max_download_rate": 0,
+    "max_upload_rate": 0,
+    "trackers": [
+      "udp://tracker.opentrackr.org:1337/announce"
+    ],
+    "category_dirs": {
+      "movies": "/downloads/movies",
+      "tvshows": "/downloads/tvshows"
+    }
   }
 }
