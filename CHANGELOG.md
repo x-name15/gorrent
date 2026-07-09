@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.1] - 2026-07-09 — Whoops, hotfix incoming!
+
+### Fixed
+- **Callback goroutine leak**: Callback goroutine is now bounded by a `context.WithTimeout` of 7 days. Dead or stalled torrents no longer leak goroutines indefinitely. Logs a clear message when abandoned.
+
+---
 ## [1.6.0] - 2026-07-09 — Huge, MAJOR update with all bs
 
 ### Added

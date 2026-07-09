@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	_ "embed"
 	"encoding/json"
 	"fmt"
@@ -182,6 +183,11 @@ func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	go func() {
+		// Bound the callback goroutine: if the torrent is dead or never finishes,
+		// abandon after 7 days rather than leaking this goroutine indefinitely.
+		ctx, cancel := context.WithTimeout(context.Background(), 7*24*time.Hour)
+		defer cancel()
+
 		t, err := s.torrentCli.AddMagnet(magnetToDownload, req.Category)
 		if err != nil {
 			log.Printf("Failed to add magnet: %v", err)
@@ -189,27 +195,40 @@ func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if req.Callback != "" {
-			// Wait for metadata
-			<-t.GotInfo()
+			// Wait for metadata or timeout
+			select {
+			case <-t.GotInfo():
+			case <-ctx.Done():
+				log.Printf("Callback abandoned: timeout waiting for metadata on %s", magnetToDownload)
+				return
+			}
+
 			info := t.Info()
 			if info == nil {
 				return
 			}
 
-			// Wait for download to finish
+			// Poll completion or bail out on timeout
+			ticker := time.NewTicker(10 * time.Second)
+			defer ticker.Stop()
 			for {
-				if t.BytesCompleted() >= info.TotalLength() {
-					payload := map[string]string{
-						"event": "completed",
-						"name":  info.Name,
-						"hash":  t.InfoHash().HexString(),
+				select {
+				case <-ticker.C:
+					if t.BytesCompleted() >= info.TotalLength() {
+						payload := map[string]string{
+							"event": "completed",
+							"name":  info.Name,
+							"hash":  t.InfoHash().HexString(),
+						}
+						b, _ := json.Marshal(payload)
+						http.Post(req.Callback, "application/json", bytes.NewBuffer(b))
+						log.Printf("Triggered callback for %s", info.Name)
+						return
 					}
-					b, _ := json.Marshal(payload)
-					http.Post(req.Callback, "application/json", bytes.NewBuffer(b))
-					log.Printf("Triggered callback for %s", info.Name)
-					break
+				case <-ctx.Done():
+					log.Printf("Callback abandoned: %s did not complete within 7 days", info.Name)
+					return
 				}
-				time.Sleep(10 * time.Second)
 			}
 		}
 	}()
