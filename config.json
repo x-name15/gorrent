@@ -1,7 +1,8 @@
 {
   "daemon": {
     "port": 7800,
-    "api_key": ""
+    "api_key": "",
+    "data_dir": "./data"
   },
   "scraper": {
     "dns": "cloudflare",
@@ -21,6 +22,9 @@
     "auto_export_torrent": false,
     "max_download_rate": 0,
     "max_upload_rate": 0,
+    "auto_cleanup": false,
+    "seed_ratio": 1.5,
+    "max_seed_days": 3,
     "trackers": [
       "udp://tracker.opentrackr.org:1337/announce"
     ],
@@ -28,5 +32,15 @@
       "movies": "/downloads/movies",
       "tvshows": "/downloads/tvshows"
     }
+  },
+  "rss": {
+    "interval_min": 30,
+    "feeds": [
+      {
+        "url": "https://nyaa.si/?page=rss&q=subsplease+1080p",
+        "category": "tvshows",
+        "regex": ["Arcane", "Solo Leveling"]
+      }
+    ]
   }
 }

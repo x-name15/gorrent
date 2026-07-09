@@ -1,6 +1,6 @@
 # ⛵ Gorrent
 
-[![Release](https://img.shields.io/badge/Release-v1.5.1-green?style=flat-square)](https://github.com/x-name15/gorrent/releases)
+[![Release](https://img.shields.io/badge/Release-v1.5.0-green?style=flat-square)](https://github.com/x-name15/gorrent/releases)
 [![Go Version](https://img.shields.io/badge/Go-1.25-00ADD8?style=flat-square&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/License-GPLv3-blue?style=flat-square)](LICENSE)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/x-name15/gorrent/entry.yaml?style=flat-square&logo=githubactions&logoColor=white)](https://github.com/x-name15/gorrent/actions)
@@ -134,7 +134,8 @@ services:
 {
   "daemon": {
     "port": 7800,
-    "api_key": "my_super_secret_key"
+    "api_key": "my_super_secret_key",
+    "data_dir": "./data"
   },
   "scraper": {
     "dns": "cloudflare",
@@ -154,22 +155,26 @@ services:
     "auto_export_torrent": true,
     "max_download_rate": 5000,
     "max_upload_rate": 0,
-    "sources": [
-      "yts", "1337x", "nyaa", "piratebay", 
-      "fitgirl", "subsplease", "torrentscsv", "rutracker"
-    ],
-    "filters": {
-      "language": "latino, castellano, multi-subs, es",
-      "resolution": "1080p, 1080i",
-      "min_seeders": "5"
-    },
+    "auto_cleanup": true,
+    "seed_ratio": 1.5,
+    "max_seed_days": 3,
     "trackers": [
       "udp://tracker.opentrackr.org:1337/announce"
     ],
     "category_dirs": {
-      "movies": "/mnt/media/movies",
-      "tvshows": "/mnt/media/tvshows"
+      "movies": "/downloads/movies",
+      "tvshows": "/downloads/tvshows"
     }
+  },
+  "rss": {
+    "interval_min": 30,
+    "feeds": [
+      {
+        "url": "https://nyaa.si/?page=rss&q=subsplease+1080p",
+        "category": "tvshows",
+        "regex": ["Arcane", "Solo Leveling"]
+      }
+    ]
   }
 }
 ```

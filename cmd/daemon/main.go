@@ -16,6 +16,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/x-name15/gorrent/pkg/config"
 	"github.com/x-name15/gorrent/pkg/netutil"
+	"github.com/x-name15/gorrent/pkg/rss"
 	"github.com/x-name15/gorrent/pkg/scraper"
 	"github.com/x-name15/gorrent/pkg/torrent"
 )
@@ -68,6 +69,10 @@ func main() {
 		scraperMgr.Register(wrap(scraper.NewRuTracker(cfg.Scraper.RutrackerCookie)))
 		log.Println("RuTracker source activated (cookie provided)")
 	}
+
+	// Start RSS Auto-Downloader
+	rssMgr := rss.NewManager(cfg, torrentCli)
+	go rssMgr.Start()
 
 	srv := &Server{
 		cfg:        cfg,

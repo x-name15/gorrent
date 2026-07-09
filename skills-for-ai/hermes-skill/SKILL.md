@@ -41,6 +41,13 @@ To check the daemon status and active downloads:
 ./gorrent.sh status
 ```
 
+### RSS Feed & Auto-Cleanup Management
+If the user asks you to "subscribe to an RSS feed", "track an anime automatically", or "clean up old torrents":
+DO NOT use the CLI or REST API. You must directly edit the `config.json` file in the project root.
+- **For RSS:** Add their requested feed to the `"rss"` block. Include the URL, the target `category` (e.g. `anime`, `tvshows`), and an array of `"regex"` patterns (like `["[SubsPlease] Arcane", "Solo Leveling"]`) so Gorrent knows what to download.
+- **For Cleanup:** Modify the `"torrent"` block to set `"auto_cleanup": true`, `"seed_ratio": 1.5`, and/or `"max_seed_days": 3` based on their request.
+- **For Bandwidth Throttling:** If the user wants to limit download/upload speeds, edit `"max_download_rate"` and `"max_upload_rate"` (in KB/s) inside the `"torrent"` block in `config.json`.
+
 To stop and delete an active download:
 ```bash
 ./gorrent.sh stop <hash>

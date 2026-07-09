@@ -27,6 +27,13 @@ If the CLI wrapper is not available, the daemon listens on `http://localhost:780
 - **Stop**: `curl -X DELETE "http://localhost:7800/api/torrent?hash=<hash>"`
 - **Live WebSocket**: `ws://localhost:7800/api/ws`
 
+### Config Automation (RSS & Cleanup)
+If the user says something like *"track this RSS feed for Arcane"*, *"add this anime to my RSS"*, or *"auto-delete torrents when they reach 1.5 ratio"*, you MUST directly edit their `config.json` file.
+1. Locate `config.json` in their directory.
+2. For RSS, add an entry to `"rss": { "feeds": [ ... ] }` with `{"url": "...", "category": "tvshows", "regex": ["Arcane"]}`.
+3. For cleanup, set `"auto_cleanup": true` and `"seed_ratio": 1.5` inside the `"torrent"` block.
+4. For bandwidth throttling, set `"max_download_rate": 5000` (in KB/s) or `"max_upload_rate"` inside the `"torrent"` block.
+
 ## When to use this skill
 - When the user asks you to find a movie, game, software, or book via torrent.
 - When the user asks to download a specific magnet link.

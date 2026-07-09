@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.5] - 2026-07-09 — More Automatization things!
+
+### Added
+- **RSS Auto-Downloader**: Added native, zero-dependency XML parser to monitor RSS feeds (e.g. Nyaa, ShowRSS) and automatically download torrents matching your Regex rules into specific categories. Maintains a clean `rss_history.json` state in your data directory to prevent duplicates.
+- **P2P Garbage Collector**: Added optional Auto-Cleanup system (`auto_cleanup` in `config.json`). Drops active torrents from the daemon once they reach a target `seed_ratio` (e.g. 1.5) or `max_seed_days` to conserve bandwidth and RAM. Downloaded files are kept 100% intact for Plex/Jellyfin.
+- **AI Agent Skills Updated**: Taught Claude, Hermes, and OpenClaw how to manage the new RSS feeds, Auto-Cleanup settings, and Bandwidth Throttling directly via `config.json`, as well as interacting with the public `/metrics` endpoint.
+- **OpenAPI Specification**: Fully synchronized `cmd/daemon/openapi.yaml` with v1.5.x, including exact `X-API-Key` authentication mappings, the new `source` search parameters, and async webhook `callback` fields.
+
+---
 ## [1.5.1] - 2026-07-09 — Source Targeting Optimization
 
 ### Added

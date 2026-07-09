@@ -37,10 +37,16 @@ func NewClient(cfg *config.TorrentConfig) (*Client, error) {
 		return nil, err
 	}
 
-	return &Client{
+	client := &Client{
 		tc:  tc,
 		cfg: cfg,
-	}, nil
+	}
+
+	if cfg.AutoCleanup {
+		go client.startGC()
+	}
+
+	return client, nil
 }
 
 // AddMagnet adds a torrent via magnet link and starts downloading.
@@ -136,4 +142,47 @@ func (c *Client) Status() []map[string]interface{} {
 func (c *Client) Close() {
 	c.tc.Close()
 	log.Println("Torrent client closed")
+}
+
+// startGC periodically checks torrents for cleanup conditions.
+func (c *Client) startGC() {
+	log.Printf("Garbage Collector enabled (Ratio: %.2f, Max Days: %d)", c.cfg.SeedRatio, c.cfg.MaxSeedDays)
+	for {
+		time.Sleep(10 * time.Minute)
+		for _, t := range c.tc.Torrents() {
+			if t.Info() == nil {
+				continue // Skip if metadata is not yet downloaded
+			}
+			length := t.Length()
+			if length == 0 || t.BytesCompleted() < length {
+				continue // Still downloading or empty
+			}
+
+			stats := t.Stats()
+			ratio := float64(stats.BytesWrittenData.Int64()) / float64(length)
+			drop := false
+
+			// Check Ratio
+			if c.cfg.SeedRatio > 0 && ratio >= c.cfg.SeedRatio {
+				log.Printf("GC: Dropping %s (Ratio %.2f reached)", t.Name(), ratio)
+				drop = true
+			}
+
+			// Check Days Completed (using file modification time as heuristic)
+			if !drop && c.cfg.MaxSeedDays > 0 {
+				path := filepath.Join(c.cfg.DownloadDir, t.Name())
+				if stat, err := os.Stat(path); err == nil {
+					daysOld := time.Since(stat.ModTime()).Hours() / 24.0
+					if daysOld >= float64(c.cfg.MaxSeedDays) {
+						log.Printf("GC: Dropping %s (Seeded for %.1f days)", t.Name(), daysOld)
+						drop = true
+					}
+				}
+			}
+
+			if drop {
+				t.Drop()
+			}
+		}
+	}
 }

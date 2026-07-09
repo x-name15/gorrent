@@ -2,10 +2,13 @@ openapi: 3.0.0
 info:
   title: Gorrent API
   description: Headless torrent search and download daemon for Openclaw automation.
-  version: 1.0.0
+  version: 1.5.5
 servers:
   - url: http://localhost:7800
     description: Gorrent Daemon
+security:
+  - ApiKeyAuth: []
+  - ApiKeyQuery: []
 paths:
   /api/search:
     get:
@@ -15,6 +18,12 @@ paths:
           in: query
           description: Search query
           required: true
+          schema:
+            type: string
+        - name: source
+          in: query
+          description: Specific scraper source to target (e.g. nyaa, yts)
+          required: false
           schema:
             type: string
       responses:
@@ -43,6 +52,12 @@ paths:
                   type: string
                 category:
                   type: string
+                source:
+                  type: string
+                  description: Limit auto-search to a specific source
+                callback:
+                  type: string
+                  description: Webhook URL to POST when download completes
       responses:
         '200':
           description: Download started
@@ -74,12 +89,14 @@ paths:
   /health:
     get:
       summary: Docker healthcheck endpoint.
+      security: []
       responses:
         '200':
           description: OK
   /metrics:
     get:
       summary: Prometheus metrics endpoint.
+      security: []
       responses:
         '200':
           description: Prometheus text format stats
@@ -104,3 +121,12 @@ components:
           type: string
         score:
           type: integer
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    ApiKeyQuery:
+      type: apiKey
+      in: query
+      name: apikey
