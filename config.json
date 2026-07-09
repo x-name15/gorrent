@@ -25,6 +25,8 @@
     "auto_cleanup": false,
     "seed_ratio": 1.5,
     "max_seed_days": 3,
+    "hardlink_dir": "",
+    "post_script": "",
     "trackers": [
       "udp://tracker.opentrackr.org:1337/announce"
     ],

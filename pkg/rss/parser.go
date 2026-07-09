@@ -8,17 +8,26 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/x-name15/gorrent/pkg/config"
 	"github.com/x-name15/gorrent/pkg/torrent"
 )
 
+// RSS represents a standard RSS feed document.
+// Handles both standard <link> and <enclosure url="magnet:..."> patterns,
+// as well as the <torrent:magnetURI> extension used by some feeds.
 type RSS struct {
 	Channel struct {
 		Items []struct {
-			Title string `xml:"title"`
-			Link  string `xml:"link"`
+			Title     string `xml:"title"`
+			Link      string `xml:"link"`
+			Enclosure struct {
+				URL  string `xml:"url,attr"`
+				Type string `xml:"type,attr"`
+			} `xml:"enclosure"`
+			MagnetURI string `xml:"magnetURI"` // torrent: namespace extension (e.g. Nyaa)
 		} `xml:"item"`
 	} `xml:"channel"`
 }
@@ -47,7 +56,7 @@ func (m *Manager) Start() {
 	}
 
 	log.Printf("Starting RSS Auto-Downloader (polling every %d minutes for %d feeds)", m.cfg.IntervalMin, len(m.cfg.Feeds))
-	m.poll() // initial poll
+	m.poll() // initial poll on startup
 	for {
 		time.Sleep(time.Duration(m.cfg.IntervalMin) * time.Minute)
 		m.poll()
@@ -74,6 +83,7 @@ func (m *Manager) processFeed(feed config.RSSFeed) {
 		return
 	}
 
+	// Compile regexes once per feed, not per item
 	var compiledRegexes []*regexp.Regexp
 	for _, pattern := range feed.Regex {
 		if re, err := regexp.Compile("(?i)" + pattern); err == nil {
@@ -83,34 +93,59 @@ func (m *Manager) processFeed(feed config.RSSFeed) {
 		}
 	}
 
+	changed := false
 	for _, item := range doc.Channel.Items {
-		if m.history[item.Link] {
+		// Resolve the actual magnet link from the item.
+		// Priority: torrent:magnetURI > enclosure[magnet:] > link[magnet:]
+		magnet := resolveMagnet(item.Link, item.Enclosure.URL, item.MagnetURI)
+		if magnet == "" {
+			log.Printf("RSS Skipping '%s': no magnet link found in item", item.Title)
+			continue
+		}
+
+		// Use the magnet as the history key (stable and unique)
+		if m.history[magnet] {
 			continue // Already downloaded
 		}
 
-		match := false
-		if len(compiledRegexes) == 0 {
-			match = true // No regex means download everything
-		} else {
-			for _, re := range compiledRegexes {
-				if re.MatchString(item.Title) {
-					match = true
-					break
-				}
+		match := len(compiledRegexes) == 0 // No regex = download everything
+		for _, re := range compiledRegexes {
+			if re.MatchString(item.Title) {
+				match = true
+				break
 			}
 		}
 
 		if match {
 			log.Printf("RSS Match found: %s", item.Title)
-			_, err := m.client.AddMagnet(item.Link, feed.Category)
+			_, err := m.client.AddMagnet(magnet, feed.Category)
 			if err != nil {
 				log.Printf("RSS Failed to add magnet for %s: %v", item.Title, err)
 			} else {
-				m.history[item.Link] = true
-				m.saveHistory()
+				m.history[magnet] = true
+				changed = true
 			}
 		}
 	}
+
+	// Save history once per feed poll, not once per matched item
+	if changed {
+		m.saveHistory()
+	}
+}
+
+// resolveMagnet picks the best magnet URI from the available RSS item fields.
+func resolveMagnet(link, enclosureURL, magnetURI string) string {
+	if magnetURI != "" {
+		return magnetURI
+	}
+	if strings.HasPrefix(enclosureURL, "magnet:") {
+		return enclosureURL
+	}
+	if strings.HasPrefix(link, "magnet:") {
+		return link
+	}
+	return ""
 }
 
 func (m *Manager) historyFile() string {

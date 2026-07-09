@@ -1,6 +1,6 @@
 # ⛵ Gorrent
 
-[![Release](https://img.shields.io/badge/Release-v1.5.5-green?style=flat-square)](https://github.com/x-name15/gorrent/releases)
+[![Release](https://img.shields.io/badge/Release-v1.5.0-green?style=flat-square)](https://github.com/x-name15/gorrent/releases)
 [![Go Version](https://img.shields.io/badge/Go-1.25-00ADD8?style=flat-square&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/License-GPLv3-blue?style=flat-square)](LICENSE)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/x-name15/gorrent/entry.yaml?style=flat-square&logo=githubactions&logoColor=white)](https://github.com/x-name15/gorrent/actions)
@@ -158,6 +158,8 @@ services:
     "auto_cleanup": true,
     "seed_ratio": 1.5,
     "max_seed_days": 3,
+    "hardlink_dir": "/mnt/media",
+    "post_script": "/opt/scripts/unrar.sh",
     "trackers": [
       "udp://tracker.opentrackr.org:1337/announce"
     ],
@@ -183,6 +185,23 @@ services:
 ```bash
 docker compose up -d
 ```
+
+> [!WARNING]
+> **Hardlink Constraints:** If you use the `hardlink_dir` feature for Plex/Jellyfin integration, please note that **hardlinks only work within the same physical disk or partition**. Your `download_dir` and `hardlink_dir` MUST be on the same drive. Otherwise, the OS will reject the operation with a "Cross-device link" error.
+
+## Advanced Usage
+
+### Post-Processing Scripts (Unzipping / Moving)
+If you download Repacks (like FitGirl) or Scene releases, you'll often end up with `.rar` or `.zip` files.
+Gorrent can automatically run a bash script when a download reaches 100%. Set the `post_script` field in `config.json` to the path of your script (e.g. `"/opt/scripts/unrar.sh"`).
+
+Gorrent will execute your script and inject the following environment variables:
+- `GORRENT_HASH`: The InfoHash of the torrent.
+- `GORRENT_NAME`: The original name of the torrent.
+- `GORRENT_PATH`: The absolute path where the downloaded files live.
+- `GORRENT_CATEGORY`: The category assigned to the torrent (e.g. `movies`).
+
+We provide an example `unrar.sh` script in the `examples/` directory of this repository!
 
 If you don't provide a `config.json`, Gorrent will load sane defaults, but mapping it is highly recommended to tune your preferred sources and filters.
 > **Tip:** Don't want to use a specific tracker? Simply remove its name from the `"sources"` array in your config file.

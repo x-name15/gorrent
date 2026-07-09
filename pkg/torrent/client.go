@@ -14,15 +14,15 @@ import (
 )
 
 type Client struct {
-	tc  *torrent.Client
-	cfg *config.TorrentConfig
+	tc      *torrent.Client
+	cfg     *config.TorrentConfig
+	dataDir string
 }
 
 // NewClient initializes the anacrolix/torrent client.
-func NewClient(cfg *config.TorrentConfig) (*Client, error) {
+func NewClient(cfg *config.TorrentConfig, dataDir string) (*Client, error) {
 	tcConfig := torrent.NewDefaultClientConfig()
 	tcConfig.DataDir = cfg.DownloadDir
-	// Disable seed by default for now to save bandwidth, unless requested
 	tcConfig.NoUpload = false
 
 	if cfg.MaxDownloadRate > 0 {
@@ -38,13 +38,15 @@ func NewClient(cfg *config.TorrentConfig) (*Client, error) {
 	}
 
 	client := &Client{
-		tc:  tc,
-		cfg: cfg,
+		tc:      tc,
+		cfg:     cfg,
+		dataDir: dataDir,
 	}
 
 	if cfg.AutoCleanup {
 		go client.startGC()
 	}
+	go client.startPostProcessor()
 
 	return client, nil
 }
@@ -130,7 +132,7 @@ func (c *Client) Status() []map[string]interface{} {
 		statuses = append(statuses, map[string]interface{}{
 			"hash":       t.InfoHash().HexString(),
 			"name":       name,
-			"downloaded": stats.BytesReadData,
+			"downloaded": stats.BytesReadData.Int64(),
 			"length":     t.Length(),
 			"peers":      stats.ActivePeers,
 		})

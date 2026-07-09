@@ -6,49 +6,98 @@ description: Search and download torrents natively using the local Gorrent daemo
 # Gorrent Skill
 
 You are interacting with Gorrent, a headless torrent search and automation daemon running at `http://localhost:7800`.
-If the user has enabled API Key security, you MUST include the `X-API-Key` header in all HTTP requests.
+If the user has enabled API Key security, you MUST include the `X-API-Key` header in all HTTP requests (or pass `?apikey=<key>` as a query param).
 
-When the user asks you to search for torrents or download something, you should use the `web_fetch` or `exec` tool to communicate with the Gorrent REST API.
+When the user asks you to search for torrents or download something, use your HTTP tools to communicate with the Gorrent REST API.
 
-## Endpoints:
+## Endpoints
 
 ### 1. Search Torrents
-Endpoint: `GET http://localhost:7800/api/search?q={query}&source={source}`
-Use this to search for a specific movie, game, or anime. The `source` parameter is optional (e.g. `nyaa`, `yts`) to target a specific tracker. It returns a JSON array of torrent results. Pick the one with the highest `score` or `seeders`.
+`GET /api/search?q=<query>[&source=<name>]`
 
-### 2. Add/Download Torrent
-Endpoint: `POST http://localhost:7800/api/download`
-Body: `{"magnet": "magnet:?xt=urn:...", "category": "movies"}` or `{"auto": "The Matrix", "category": "movies", "source": "yts"}`
-Use this to start a download.
-If the user asks to "download X", you can just send `{"auto": "X"}` and Gorrent will automatically find and start the best match. You can optionally include a `category` (like movies, tvshows, anime) to route the files to specific folders, and a `source` to restrict the search to a single tracker.
+Returns a JSON array of results. Pick the one with the highest `score` or `seeders`.
 
-**Async Notifications:** If your platform supports receiving webhooks, include `"callback": "http://your-webhook-url"` in the JSON payload so Gorrent can notify you when the download hits 100%. Tell the user you will notify them when it's done, and do so once you receive the webhook.
+**Available `source` values:** `yts`, `nyaa`, `piratebay`, `1337x`, `eztv`, `subsplease`, `fitgirl`, `torrentscsv`, `rutracker`
 
-### 3. Modifying User Config (RSS tracking & GC)
-If the user asks you to *"track this RSS feed for my series"*, *"download new episodes of X automatically"*, or *"delete my torrents after 3 days"*:
-You must use your code editing tools to directly modify the `config.json` file in their directory.
-- **To add an RSS feed**: Append to the `"rss.feeds"` array:
-  ```json
-  {
-    "url": "https://nyaa.si/?page=rss&q=subsplease+1080p",
-    "category": "tvshows",
-    "regex": ["Title of the show"]
-  }
-  ```
-- **To enable Auto-Cleanup (GC)**: Under `"torrent"`, set `"auto_cleanup": true` and configure `"seed_ratio"` or `"max_seed_days"`.
-- **To limit download/upload speeds (Bandwidth Throttling)**: Under `"torrent"`, set `"max_download_rate"` or `"max_upload_rate"` (in KB/s).
+### 2. Download Torrent
+`POST /api/download`
+
+```json
+{
+  "magnet": "magnet:?xt=urn:btih:... (or bare 40-char hash)",
+  "auto": "search query (Gorrent auto-picks best result)",
+  "category": "movies | tvshows | anime | ...",
+  "source": "restrict auto-search to one scraper",
+  "callback": "https://your-webhook-url (POST when 100% done)"
+}
+```
+Use `magnet` OR `auto`, not both. `category`, `source`, and `callback` are all optional.
+
+**Webhook payload** (sent to `callback` when complete):
+```json
+{"event": "completed", "name": "...", "hash": "..."}
+```
 
 ### 3. Status
-Endpoint: `GET http://localhost:7800/api/status`
-Use this to check the status of active downloads. (Note: A live WebSocket is also available at `/api/ws` if you need real-time streaming).
+`GET /api/status`
+
+Returns array of active torrents:
+```json
+[{"hash":"...", "name":"...", "downloaded":102400, "length":1073741824, "peers":12}]
+```
 
 ### 4. Stop Torrent
-Endpoint: `DELETE http://localhost:7800/api/torrent?hash={hash}`
-Use this to cancel and remove an active download if the user requests it.
+`DELETE /api/torrent?hash=<40-char-hash>`
 
-### 5. Metrics & Health
-Endpoint: `GET http://localhost:7800/metrics`
-Endpoint: `GET http://localhost:7800/health`
-Use the metrics endpoint to read Prometheus-style statistics about active torrents, bytes downloaded, and peer connections. This does NOT require the `X-API-Key` header.
+Drops the torrent from the engine. **Files remain on disk** — safe for Plex/Jellyfin.
 
-Always return the status or results nicely formatted to the user.
+### 5. WebSocket (Real-Time)
+`ws://localhost:7800/api/ws` — streams the full status array every 1 second.
+
+### 6. Prometheus Metrics (No Auth)
+`GET /metrics` — exports:
+- `gorrent_torrents_active`
+- `gorrent_bytes_downloaded`
+- `gorrent_bytes_uploaded`
+
+### 7. Health Check (No Auth)
+`GET /health` → `{"status": "ok"}`
+
+### 8. OpenAPI Spec (No Auth)
+`GET /api/docs` → returns the full OpenAPI YAML specification.
+
+## Config Automation (Zero-Touch UX)
+If the user asks you to configure anything, directly modify `config.json`. Full schema:
+
+### `daemon` block
+- `port` (int): Daemon port. Default `7800`.
+- `api_key` (string): Shared secret for auth.
+- `data_dir` (string): State files directory. Default `"./data"`.
+
+### `scraper` block
+- `sources` (array): Active scrapers. Valid: `yts`, `nyaa`, `piratebay`, `1337x`, `eztv`, `subsplease`, `fitgirl`, `torrentscsv`, `rutracker`.
+- `filters` (object): e.g. `{"language": "spanish", "quality": "1080p"}`.
+- `dns` (string): DNS-over-HTTPS resolver. e.g. `"cloudflare"`, `"google"`, or raw IP.
+- `rutracker_cookie` (string): RuTracker `bb_session` cookie.
+
+### `torrent` block
+- `download_dir` (string): Root download directory.
+- `auto_export_torrent` (bool): Auto-save `.torrent` file alongside each download.
+- `trackers` (array): Extra UDP/HTTP trackers appended to every magnet link.
+- `category_dirs` (object): Category → absolute path mapping. e.g. `{"movies": "/downloads/movies"}`.
+- `max_download_rate` (int, KB/s): Download cap. `0` = unlimited.
+- `max_upload_rate` (int, KB/s): Upload/seed cap. `0` = unlimited.
+- `auto_cleanup` (bool): Default `false`. Enables Garbage Collector.
+- `seed_ratio` (float): GC drops torrent when ratio reaches this (e.g. `1.5`).
+- `max_seed_days` (int): GC drops torrent after seeding this many days.
+- `hardlink_dir` (string): **Optional.** Directory for Plex/Jellyfin hardlinks. Must be on the same physical disk as `download_dir` or it will fail.
+- `post_script` (string): **Optional.** Bash script path run on completion. Env vars: `GORRENT_HASH`, `GORRENT_NAME`, `GORRENT_PATH`, `GORRENT_CATEGORY`.
+
+### `rss` block
+- `interval_min` (int): Polling interval in minutes.
+- `feeds` (array):
+  - `url` (string): RSS feed URL.
+  - `category` (string): Target category for downloads.
+  - `regex` (array of strings): Case-insensitive title patterns. Empty = download all.
+
+Always return status/results nicely formatted to the user.

@@ -1,8 +1,6 @@
 package main
 
 import (
-	"github.com/x-name15/gorrent/pkg/search"
-
 	"bytes"
 	_ "embed"
 	"encoding/json"
@@ -18,8 +16,12 @@ import (
 	"github.com/x-name15/gorrent/pkg/netutil"
 	"github.com/x-name15/gorrent/pkg/rss"
 	"github.com/x-name15/gorrent/pkg/scraper"
+	"github.com/x-name15/gorrent/pkg/search"
 	"github.com/x-name15/gorrent/pkg/torrent"
 )
+
+// hashRegex matches a bare 40-character hex infohash.
+var hashRegex = regexp.MustCompile(`^[a-fA-F0-9]{40}$`)
 
 //go:embed openapi.yaml
 var openapiYAML []byte
@@ -37,7 +39,7 @@ func main() {
 		cfg = config.Default()
 	}
 
-	torrentCli, err := torrent.NewClient(&cfg.Torrent)
+	torrentCli, err := torrent.NewClient(&cfg.Torrent, cfg.Daemon.DataDir)
 	if err != nil {
 		log.Fatal("Failed to initialize torrent client:", err)
 	}
@@ -168,7 +170,7 @@ func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 1. Accept bare infohashes
-	if len(magnetToDownload) == 40 && regexp.MustCompile(`^[a-fA-F0-9]{40}$`).MatchString(magnetToDownload) {
+	if len(magnetToDownload) == 40 && hashRegex.MatchString(magnetToDownload) {
 		magnetToDownload = "magnet:?xt=urn:btih:" + magnetToDownload
 	}
 
@@ -259,6 +261,24 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer c.Close()
+
+	// Set a read deadline — if the client doesn't send a pong within 60s, disconnect
+	c.SetReadDeadline(time.Now().Add(60 * time.Second))
+	c.SetPongHandler(func(string) error {
+		c.SetReadDeadline(time.Now().Add(60 * time.Second))
+		return nil
+	})
+
+	// Background ping sender
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			if err := c.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
+			}
+		}
+	}()
 
 	for {
 		stats := s.torrentCli.Status()

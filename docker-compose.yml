@@ -7,4 +7,10 @@ services:
     volumes:
       - ./config.json:/config.json
       - ./downloads:/downloads
+      - ./data:/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7800/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

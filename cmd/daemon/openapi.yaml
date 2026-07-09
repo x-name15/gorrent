@@ -1,8 +1,8 @@
 openapi: 3.0.0
 info:
   title: Gorrent API
-  description: Headless torrent search and download daemon for Openclaw automation.
-  version: 1.5.5
+  description: Headless torrent search and download daemon for homelab automation.
+  version: 1.6.0
 servers:
   - url: http://localhost:7800
     description: Gorrent Daemon
@@ -16,14 +16,16 @@ paths:
       parameters:
         - name: q
           in: query
-          description: Search query
+          description: Search query string
           required: true
           schema:
             type: string
         - name: source
           in: query
-          description: Specific scraper source to target (e.g. nyaa, yts)
           required: false
+          description: >
+            Restrict search to a single scraper. Valid values:
+            yts, nyaa, piratebay, 1337x, eztv, subsplease, fitgirl, torrentscsv, rutracker
           schema:
             type: string
       responses:
@@ -35,10 +37,15 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/TorrentResult'
+        '401':
+          description: Unauthorized — API key missing or invalid
+
   /api/download:
     post:
       summary: Add a torrent to download.
-      description: Provide either a 'magnet' link directly, or an 'auto' query to automatically search and pick the best result.
+      description: >
+        Provide either a 'magnet' link or bare 40-char infohash directly,
+        or an 'auto' query to automatically search and pick the best result.
       requestBody:
         required: true
         content:
@@ -48,44 +55,106 @@ paths:
               properties:
                 magnet:
                   type: string
+                  description: Full magnet URI or bare 40-character infohash
                 auto:
                   type: string
+                  description: Search query — Gorrent will auto-pick the highest-scored result
                 category:
                   type: string
+                  description: Category name (e.g. movies, tvshows, anime) — routes files to category_dirs
                 source:
                   type: string
-                  description: Limit auto-search to a specific source
+                  description: Restrict the auto-search to a specific scraper (e.g. nyaa, yts)
                 callback:
                   type: string
-                  description: Webhook URL to POST when download completes
+                  description: >
+                    Webhook URL. Gorrent will POST {event, name, hash} to this URL
+                    when the download reaches 100%.
       responses:
         '200':
           description: Download started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: started
+                  magnet:
+                    type: string
+        '400':
+          description: Bad request — missing magnet or auto parameter
+        '401':
+          description: Unauthorized
+        '404':
+          description: No results found for auto-download query
+
   /api/status:
     get:
-      summary: Get status of active downloads.
+      summary: Get status of all active downloads.
       responses:
         '200':
           description: List of active torrents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TorrentStatus'
+        '401':
+          description: Unauthorized
+
   /api/torrent:
     delete:
-      summary: Stop and remove an active download.
+      summary: Stop and drop an active torrent (files remain on disk).
       parameters:
         - name: hash
           in: query
-          description: Infohash of the torrent to stop
+          description: 40-character infohash of the torrent to stop
           required: true
           schema:
             type: string
       responses:
         '200':
           description: Torrent stopped successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: stopped
+                  hash:
+                    type: string
+        '401':
+          description: Unauthorized
+        '404':
+          description: Torrent not found
+
   /api/ws:
     get:
-      summary: WebSocket endpoint for real-time status streaming.
+      summary: WebSocket endpoint — streams TorrentStatus array every 1 second.
       responses:
         '101':
-          description: Switching Protocols (WebSocket)
+          description: Switching Protocols (WebSocket upgrade)
+      security:
+        - ApiKeyAuth: []
+        - ApiKeyQuery: []
+
+  /api/docs:
+    get:
+      summary: Returns this OpenAPI specification as YAML.
+      security: []
+      responses:
+        '200':
+          description: OpenAPI YAML document
+          content:
+            application/yaml:
+              schema:
+                type: string
+
   /health:
     get:
       summary: Docker healthcheck endpoint.
@@ -93,13 +162,31 @@ paths:
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
   /metrics:
     get:
-      summary: Prometheus metrics endpoint.
+      summary: Prometheus metrics endpoint (no auth required).
       security: []
       responses:
         '200':
-          description: Prometheus text format stats
+          description: Prometheus text format
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: |
+                gorrent_torrents_active 2
+                gorrent_bytes_downloaded 104857600
+                gorrent_bytes_uploaded 52428800
+
 components:
   schemas:
     TorrentResult:
@@ -117,10 +204,31 @@ components:
           type: integer
         source:
           type: string
+          description: Scraper that returned this result
         magnet:
           type: string
         score:
           type: integer
+          description: Composite score (seeders * weight) used for auto-picking
+
+    TorrentStatus:
+      type: object
+      properties:
+        hash:
+          type: string
+          description: 40-character infohash
+        name:
+          type: string
+        downloaded:
+          type: integer
+          description: Bytes downloaded so far
+        length:
+          type: integer
+          description: Total size in bytes
+        peers:
+          type: integer
+          description: Number of active peer connections
+
   securitySchemes:
     ApiKeyAuth:
       type: apiKey

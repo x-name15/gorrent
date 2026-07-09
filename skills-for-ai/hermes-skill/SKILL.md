@@ -1,7 +1,7 @@
 ---
 name: gorrent-automation
 description: Automates downloading torrents using the local Gorrent daemon via the CLI wrapper.
-version: 1.0.0
+version: 1.6.0
 author: Mr Jacket
 license: GPL-3.0
 metadata:
@@ -17,43 +17,76 @@ metadata:
 You are an AI agent managing the user's media library via the `gorrent` daemon.
 
 ## When to Use
-Use this skill when the user asks you to download a movie, TV show, anime, or software, or when they want to search for a specific torrent.
+Use this skill when the user asks you to download a movie, TV show, anime, software, or when they want to search for torrents, or when they ask to configure any Gorrent feature.
 
 ## How to Use
-You must use the local `gorrent` CLI wrapper to interact with the background daemon.
-The wrapper is available as `gorrent.sh` (macOS/Linux) or `gorrent.bat` (Windows) in the user's Gorrent directory.
+Use the local `gorrent` CLI wrapper (`gorrent.sh` on macOS/Linux, `gorrent.bat` on Windows).
 
-To search and automatically download the best result based on the user's config:
+**Search:**
 ```bash
-./gorrent.sh download --source nyaa --category movies --auto "Arcane S01"
-```
-*(The `--category` and `--source` flags are optional but highly recommended to organize media and avoid unnecessary tracker hits!)*
-
-*Async Notifications: If you have a webhook or notification endpoint, automatically append `--callback <YOUR_WEBHOOK_URL>` to the download command. Tell the user you will wait for Gorrent to finish. When you receive the POST callback, notify the user that the download finished.*
-
-To search for torrents without downloading them (returns a list of the best candidates):
-```bash
-./gorrent.sh search --source yts "Movie Title"
+./gorrent.sh search [--source <name>] <query>
 ```
 
-To check the daemon status and active downloads:
+**Download (auto-pick best result):**
+```bash
+./gorrent.sh download --auto <query> [--source <name>] [--category <name>] [--callback <url>]
+```
+
+**Download (specific magnet or infohash):**
+```bash
+./gorrent.sh download <magnet_or_40char_hash> [--category <name>] [--callback <url>]
+```
+
+**Check status:**
 ```bash
 ./gorrent.sh status
 ```
 
-### RSS Feed & Auto-Cleanup Management
-If the user asks you to "subscribe to an RSS feed", "track an anime automatically", or "clean up old torrents":
-DO NOT use the CLI or REST API. You must directly edit the `config.json` file in the project root.
-- **For RSS:** Add their requested feed to the `"rss"` block. Include the URL, the target `category` (e.g. `anime`, `tvshows`), and an array of `"regex"` patterns (like `["[SubsPlease] Arcane", "Solo Leveling"]`) so Gorrent knows what to download.
-- **For Cleanup:** Modify the `"torrent"` block to set `"auto_cleanup": true`, `"seed_ratio": 1.5`, and/or `"max_seed_days": 3` based on their request.
-- **For Bandwidth Throttling:** If the user wants to limit download/upload speeds, edit `"max_download_rate"` and `"max_upload_rate"` (in KB/s) inside the `"torrent"` block in `config.json`.
-
-To stop and delete an active download:
+**Stop a torrent:**
 ```bash
 ./gorrent.sh stop <hash>
 ```
 
+**Available `--source` values** (restrict to one scraper):
+`yts`, `nyaa`, `piratebay`, `1337x`, `eztv`, `subsplease`, `fitgirl`, `torrentscsv`, `rutracker`
+
+**Available `--category` values:** anything set in the user's `category_dirs` config (e.g. `movies`, `tvshows`, `anime`).
+
+**`--callback <url>`:** Gorrent will POST `{"event":"completed","name":"...","hash":"..."}` to this URL when download finishes.
+
+## Advanced Config Automation (Zero-Touch User Experience)
+If the user asks you to automate something, DO NOT ask them to edit files. YOU must directly edit the `config.json` file in the project root. Full schema:
+
+### `daemon` block
+- `port` (int): Daemon port. Default `7800`.
+- `api_key` (string): If set, all requests must include `X-API-Key` header or `?apikey=` param.
+- `data_dir` (string): Directory for internal state files. Default `"./data"`.
+
+### `scraper` block
+- `sources` (array): Active scrapers. Valid: `yts`, `nyaa`, `piratebay`, `1337x`, `eztv`, `subsplease`, `fitgirl`, `torrentscsv`, `rutracker`.
+- `filters` (object): e.g. `{"language": "spanish"}`.
+- `dns` (string): DNS resolver. e.g. `"cloudflare"`, `"google"`, `"8.8.8.8"`.
+- `rutracker_cookie` (string): RuTracker `bb_session` cookie (only needed to activate that source).
+
+### `torrent` block
+- `download_dir` (string): Root download path.
+- `auto_export_torrent` (bool): Auto-saves `.torrent` file alongside download.
+- `trackers` (array): Extra UDP/HTTP trackers appended to every magnet.
+- `category_dirs` (object): Map of category name → absolute path. e.g. `{"movies":"/downloads/movies"}`.
+- `max_download_rate` (int, KB/s): Download speed cap. `0` = unlimited.
+- `max_upload_rate` (int, KB/s): Upload/seed speed cap. `0` = unlimited.
+- `auto_cleanup` (bool): Default `false`. Enables P2P Garbage Collector.
+- `seed_ratio` (float): GC drops torrent when ratio reaches this value (e.g. `1.5`).
+- `max_seed_days` (int): GC drops torrent after seeding this many days.
+- `hardlink_dir` (string): **Optional.** Directory for zero-byte hardlinks for Plex/Jellyfin. Must be on the same physical disk as `download_dir`.
+- `post_script` (string): **Optional.** Path to bash script run on download completion. Env vars injected: `GORRENT_HASH`, `GORRENT_NAME`, `GORRENT_PATH`, `GORRENT_CATEGORY`.
+
+### `rss` block
+- `interval_min` (int): Polling interval in minutes.
+- `feeds` (array): Each feed has `url`, `category`, and `regex` (array of case-insensitive patterns). Empty `regex` = download everything.
+
 **CRITICAL RULES:**
 - Always execute the wrapper from the Gorrent directory.
 - Never attempt to download `.torrent` files or parse HTML tracker pages yourself.
-- Let the Gorrent headless daemon handle all scoring, peer connection, and dead-torrent protection logic.
+- Let the Gorrent daemon handle all scoring, peer connection, and dead-torrent protection.
+- Seeding is good — never enable `auto_cleanup` unless the user explicitly asks.

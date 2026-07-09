@@ -39,6 +39,8 @@ type TorrentConfig struct {
 	AutoCleanup     bool              `json:"auto_cleanup"`      // Optional, false by default
 	SeedRatio       float64           `json:"seed_ratio"`        // Target ratio to stop seeding
 	MaxSeedDays     int               `json:"max_seed_days"`     // Days to seed before stopping
+	HardlinkDir     string            `json:"hardlink_dir"`      // Optional, e.g. "/media"
+	PostScript      string            `json:"post_script"`       // Optional, bash script to run on completion
 }
 
 // RSSFeed holds the configuration for a single RSS feed.

@@ -5,7 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.5.5] - 2026-07-09 — More Automatization things!
+## [1.6.0] - 2026-07-09 — Huge, MAJOR update with all bs
+
+### Added
+- **Native Hardlinking**: Added `hardlink_dir` config parameter. Gorrent now automatically creates zero-byte hardlinks (preserving category folders) for completed downloads, allowing seamless integration with Plex/Jellyfin without interrupting the seeding process.
+- **Post-Processing Scripts**: Added `post_script` config parameter. Gorrent can now execute any script when a torrent reaches 100%. Environment variables (`GORRENT_HASH`, `GORRENT_NAME`, `GORRENT_PATH`, `GORRENT_CATEGORY`) are injected automatically. For Docker deployments, use the `callback` webhook instead.
+- **Post-Processing State Manager**: Created a background engine that writes `gorrent_processed.json` to `data_dir` to guarantee scripts and links are executed exactly once per torrent.
+- **AI Skills Full Awareness**: Taught Claude, Hermes, and OpenClaw how to manipulate all v1.6.0 parameters via `config.json` so users can enable these features strictly via natural language.
+
+### Fixed
+- **RSS — Nyaa/ShowRSS magnet resolution**: RSS parser now correctly extracts magnet links from `<enclosure url="magnet:...">` and `<torrent:magnetURI>` fields. Previously only read `<link>`, which for Nyaa is a page URL, not a magnet.
+- **RSS — history key stability**: History tracker now uses the magnet URI as key instead of `<link>`, making it consistent across feeds that report items differently.
+- **RSS — unnecessary disk writes**: `rss_history.json` is now saved once per feed poll instead of once per matched item.
+- **Post-Processor — wrong state directory**: `gorrent_processed.json` now goes to `data_dir` instead of `download_dir`, consistent with `rss_history.json`.
+- **Post-Processor — `bash` hardcoded**: `post_script` now runs the script directly as an executable instead of via `bash`, allowing native binaries and properly-configured scripts to work.
+- **Security — Hardlink path traversal**: Added validation that hardlink destination is always under `hardlink_dir` to prevent malicious torrent names from escaping the target directory.
+- **WebSocket — idle goroutine leak**: WS handler now sends periodic pings and sets a 60s read deadline, disconnecting dead clients automatically.
+- **Status API — `BytesReadData` serialized as object**: Fixed `stats.BytesReadData` to use `.Int64()` so it serializes correctly as a number in JSON.
+- **Performance — regex compiled per request**: Infohash validation regex is now a package-level `var` instead of being recompiled on every download request.
+- **Docker — `data/` volume not mounted**: `docker-compose.yml` now mounts `./data:/data` so RSS history and post-processing state survive container restarts.
+- **Docker — missing healthcheck**: `docker-compose.yml` now uses `/health` endpoint for Docker health monitoring.
+
+---
+## [1.5.5] - 2026-07-09 — The Automation Engine
 
 ### Added
 - **RSS Auto-Downloader**: Added native, zero-dependency XML parser to monitor RSS feeds (e.g. Nyaa, ShowRSS) and automatically download torrents matching your Regex rules into specific categories. Maintains a clean `rss_history.json` state in your data directory to prevent duplicates.
