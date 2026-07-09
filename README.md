@@ -1,6 +1,6 @@
 # ⛵ Gorrent
 
-[![Release](https://img.shields.io/badge/Release-v1.5.0-green?style=flat-square)](https://github.com/x-name15/gorrent/releases)
+[![Release](https://img.shields.io/badge/Release-v1.5.1-green?style=flat-square)](https://github.com/x-name15/gorrent/releases)
 [![Go Version](https://img.shields.io/badge/Go-1.25-00ADD8?style=flat-square&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/License-GPLv3-blue?style=flat-square)](LICENSE)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/x-name15/gorrent/entry.yaml?style=flat-square&logo=githubactions&logoColor=white)](https://github.com/x-name15/gorrent/actions)
