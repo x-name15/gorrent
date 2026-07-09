@@ -9,9 +9,9 @@ Gorrent is a headless automation-first torrent client built in Go. It runs in a 
 To interact with Gorrent, use the provided wrapper scripts (`./gorrent.sh` on Linux/Mac, or `.\gorrent.bat` on Windows).
 
 ### CLI Commands:
-- **Search**: `./gorrent.sh search <query>`
+- **Search**: `./gorrent.sh search [--source <name>] <query>`
 - **Download by magnet**: `./gorrent.sh download "magnet:?xt=urn:btih:..."`
-- **Auto-download best result**: `./gorrent.sh download --auto <query>`
+- **Auto-download best result**: `./gorrent.sh download [--source <name>] --auto <query>`
 - **Check Status**: `./gorrent.sh status`
 - **Stop Download**: `./gorrent.sh stop <hash>`
 
@@ -21,8 +21,8 @@ To interact with Gorrent, use the provided wrapper scripts (`./gorrent.sh` on Li
 
 ### REST API
 If the CLI wrapper is not available, the daemon listens on `http://localhost:7800` (ensure you pass `X-API-Key` header if the user has enabled security).
-- **Search**: `curl "http://localhost:7800/api/search?q=<query>"`
-- **Download**: `curl -X POST "http://localhost:7800/api/download" -H "Content-Type: application/json" -d '{"magnet": "..."}'` or `{"auto": "<query>", "category": "movies"}`
+- **Search**: `curl "http://localhost:7800/api/search?q=<query>&source=<name>"`
+- **Download**: `curl -X POST "http://localhost:7800/api/download" -H "Content-Type: application/json" -d '{"magnet": "..."}'` or `{"auto": "<query>", "category": "movies", "source": "nyaa"}`
 - **Status**: `curl "http://localhost:7800/api/status"`
 - **Stop**: `curl -X DELETE "http://localhost:7800/api/torrent?hash=<hash>"`
 - **Live WebSocket**: `ws://localhost:7800/api/ws`

@@ -63,21 +63,28 @@ func printUsage() {
 	fmt.Println(`Usage: gorrent <command> [args]
 
 Commands:
-  search <query>          Search for torrents
-  download --auto <query> Auto-search and download the best match
-  download <magnet>       Download a specific magnet link
+  search [--source <name>] <query>          Search for torrents
+  download [--source <name>] --auto <query> Auto-search and download the best match
+  download <magnet>                         Download a specific magnet link
   status                  Show active downloads
   stop <hash>             Stop and delete an active download`)
 }
 
 func handleSearch(args []string) {
-	if len(args) == 0 {
+	searchCmd := flag.NewFlagSet("search", flag.ExitOnError)
+	sourceFlag := searchCmd.String("source", "", "Specific source to search (e.g. nyaa, yts)")
+	searchCmd.Parse(args)
+
+	if len(searchCmd.Args()) == 0 {
 		fmt.Println("Error: missing query")
 		return
 	}
-	query := args[0]
+	query := searchCmd.Args()[0]
 
 	u := fmt.Sprintf("%s/api/search?q=%s", DaemonURL, url.QueryEscape(query))
+	if *sourceFlag != "" {
+		u += "&source=" + url.QueryEscape(*sourceFlag)
+	}
 	req, _ := http.NewRequest(http.MethodGet, u, nil)
 	resp, err := doRequest(req)
 	if err != nil {
@@ -106,11 +113,16 @@ func handleSearch(args []string) {
 func handleDownload(args []string) {
 	downloadCmd := flag.NewFlagSet("download", flag.ExitOnError)
 	autoFlag := downloadCmd.String("auto", "", "Auto-search and download best match")
+	sourceFlag := downloadCmd.String("source", "", "Specific source to search (e.g. nyaa, yts)")
 	callbackFlag := downloadCmd.String("callback", "", "Webhook URL to notify upon completion")
 	categoryFlag := downloadCmd.String("category", "", "Save torrent to a specific category folder")
 	downloadCmd.Parse(args)
 
 	payload := map[string]string{}
+
+	if *sourceFlag != "" {
+		payload["source"] = *sourceFlag
+	}
 
 	if *callbackFlag != "" {
 		payload["callback"] = *callbackFlag

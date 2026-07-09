@@ -119,7 +119,8 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	results := s.scraperMgr.Search(r.Context(), query)
+	source := r.URL.Query().Get("source")
+	results := s.scraperMgr.Search(r.Context(), query, source)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(results)
@@ -134,6 +135,7 @@ func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Magnet   string `json:"magnet"`
 		Auto     string `json:"auto"` // query to auto-download best match
+		Source   string `json:"source"`
 		Callback string `json:"callback"`
 		Category string `json:"category"`
 	}
@@ -147,7 +149,7 @@ func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
 
 	if req.Auto != "" {
 		// Auto mode: Search and pick best
-		results := s.scraperMgr.Search(r.Context(), req.Auto)
+		results := s.scraperMgr.Search(r.Context(), req.Auto, req.Source)
 		if len(results) == 0 {
 			http.Error(w, "No results found for auto-download", http.StatusNotFound)
 			return

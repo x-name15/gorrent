@@ -30,7 +30,7 @@ func (m *Manager) Register(s Source) {
 }
 
 // Search executes all registered scrapers concurrently.
-func (m *Manager) Search(ctx context.Context, query string) []TorrentResult {
+func (m *Manager) Search(ctx context.Context, query string, targetSource string) []TorrentResult {
 	var wg sync.WaitGroup
 	resultsChan := make(chan []TorrentResult, len(m.sources))
 
@@ -43,6 +43,10 @@ func (m *Manager) Search(ctx context.Context, query string) []TorrentResult {
 	for _, source := range m.sources {
 		if !enabled[source.ID()] {
 			continue // Skip deactivated modules
+		}
+
+		if targetSource != "" && !strings.EqualFold(source.ID(), targetSource) {
+			continue // Skip if specific source requested and doesn't match
 		}
 
 		wg.Add(1)
