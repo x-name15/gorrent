@@ -9,7 +9,7 @@ import (
 func TestPathTraversalGuard(t *testing.T) {
 	// Simulate the guard logic used in watcher and GC
 	baseDir := filepath.Clean("/downloads/watch")
-	
+
 	outsideAbs, _ := filepath.Abs("../../../etc/shadow")
 
 	tests := []struct {
@@ -32,10 +32,10 @@ func TestPathTraversalGuard(t *testing.T) {
 			if filepath.IsAbs(tt.fileName) {
 				srcPath = filepath.Clean(tt.fileName)
 			}
-			
+
 			// The exact logic from watcher.go / client.go
 			hasPrefix := strings.HasPrefix(filepath.Clean(srcPath)+string(filepath.Separator), baseDir+string(filepath.Separator))
-			
+
 			if hasPrefix != tt.shouldPass {
 				t.Errorf("expected pass=%v, got %v for path %s", tt.shouldPass, hasPrefix, tt.fileName)
 			}

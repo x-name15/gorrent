@@ -45,7 +45,7 @@ func TestBitTorrentedScraper_Mock(t *testing.T) {
 	if inj, ok := s.(clientInjector); ok {
 		inj.InjectClient(newMockClient(ts))
 	}
-	
+
 	// Execute search
 	results, err := s.Search(context.Background(), "Test Movie")
 	if err != nil {

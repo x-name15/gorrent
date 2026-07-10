@@ -53,7 +53,7 @@ func Test1337xScraper_Mock(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
-	// 1337x returns results without infohashes first, which requires a secondary scrape, 
+	// 1337x returns results without infohashes first, which requires a secondary scrape,
 	// but the parser extracts the name, seeds, and size perfectly.
 	if len(results) != 1 {
 		names := []string{}

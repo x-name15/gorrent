@@ -15,7 +15,7 @@ import (
 func TestDisableDirListing(t *testing.T) {
 	// Create a temporary directory structure
 	tmpDir := t.TempDir()
-	
+
 	// Create a file
 	err := os.WriteFile(filepath.Join(tmpDir, "test.txt"), []byte("hello"), 0644)
 	if err != nil {
@@ -28,7 +28,7 @@ func TestDisableDirListing(t *testing.T) {
 
 	// Set up the file server with the disableDirListing wrapper
 	fs := http.FileServer(netutil.DisableDirListing{FS: http.Dir(tmpDir)})
-	
+
 	// Test 1: Accessing the root directory should fail (404)
 	req := httptest.NewRequest("GET", "/", nil)
 	rr := httptest.NewRecorder()
