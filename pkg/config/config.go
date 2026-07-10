@@ -16,9 +16,10 @@ type Config struct {
 
 // DaemonConfig holds settings for the background service.
 type DaemonConfig struct {
-	Port    int    `json:"port" yaml:"port"`
-	APIKey  string `json:"api_key" yaml:"api_key"`
-	DataDir string `json:"data_dir" yaml:"data_dir"` // e.g. "./data" for internal state like rss_history.json
+	Port     int    `json:"port" yaml:"port"`
+	APIKey   string `json:"api_key" yaml:"api_key"`
+	DataDir  string `json:"data_dir" yaml:"data_dir"` // e.g. "./data" for internal state like rss_history.json
+	LogLevel string `json:"log_level" yaml:"log_level"`
 }
 
 // ScraperConfig holds settings for the search engines.
@@ -78,8 +79,9 @@ func Load(path string) (*Config, error) {
 func Default() *Config {
 	return &Config{
 		Daemon: DaemonConfig{
-			Port:    7800,
-			DataDir: "./data",
+			Port:     7800,
+			DataDir:  "./data",
+			LogLevel: "minimal",
 		},
 		Scraper: ScraperConfig{
 			Sources: []string{"yts", "1337x", "nyaa", "piratebay", "bittorrented"},

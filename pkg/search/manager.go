@@ -3,6 +3,7 @@ package search
 import (
 	"context"
 	"github.com/x-name15/gorrent/pkg/config"
+	"github.com/x-name15/gorrent/pkg/logger"
 	"regexp"
 	"sort"
 	"strconv"
@@ -54,7 +55,10 @@ func (m *Manager) Search(ctx context.Context, query string, targetSource string)
 			defer wg.Done()
 			res, err := s.Search(ctx, query)
 			if err == nil {
+				logger.Debugf("Scraper [%s] returned %d results for '%s'", s.ID(), len(res), query)
 				resultsChan <- res
+			} else {
+				logger.Debugf("Scraper [%s] error for '%s': %v", s.ID(), query, err)
 			}
 		}(source)
 	}
@@ -74,6 +78,7 @@ func (m *Manager) Search(ctx context.Context, query string, targetSource string)
 
 // ScoreAndFilter applies heuristics to rank torrents based on config filters.
 func (m *Manager) ScoreAndFilter(results []TorrentResult) []TorrentResult {
+	logger.Debugf("ScoreAndFilter: Processing %d total results", len(results))
 	var filtered []TorrentResult
 
 	minSeedersStr := m.config.Filters["min_seeders"]
@@ -139,5 +144,6 @@ func (m *Manager) ScoreAndFilter(results []TorrentResult) []TorrentResult {
 		return filtered[i].Score > filtered[j].Score
 	})
 
+	logger.Debugf("ScoreAndFilter: Returning %d filtered results", len(filtered))
 	return filtered
 }

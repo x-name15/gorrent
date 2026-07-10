@@ -5,6 +5,8 @@
 daemon:
   port: 7800
   api_key: ""
+  # Verbosity level. Options: "minimal" or "debug"
+  log_level: "minimal"
   # Directory where Gorrent saves internal state (like rss_history.json)
   data_dir: "./data"
 

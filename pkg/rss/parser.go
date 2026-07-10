@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/x-name15/gorrent/pkg/config"
+	"github.com/x-name15/gorrent/pkg/logger"
 	"github.com/x-name15/gorrent/pkg/torrent"
 )
 
@@ -70,6 +71,7 @@ func (m *Manager) poll() {
 }
 
 func (m *Manager) processFeed(feed config.RSSFeed) {
+	logger.Debugf("RSS Checking feed: %s", feed.URL)
 	resp, err := http.Get(feed.URL)
 	if err != nil {
 		log.Printf("RSS Error fetching %s: %v", feed.URL, err)
@@ -105,6 +107,7 @@ func (m *Manager) processFeed(feed config.RSSFeed) {
 
 		// Use the magnet as the history key (stable and unique)
 		if m.history[magnet] {
+			logger.Debugf("RSS Skipping '%s': already in history", item.Title)
 			continue // Already downloaded
 		}
 
@@ -125,6 +128,8 @@ func (m *Manager) processFeed(feed config.RSSFeed) {
 				m.history[magnet] = true
 				changed = true
 			}
+		} else {
+			logger.Debugf("RSS Skipping '%s': no regex match", item.Title)
 		}
 	}
 

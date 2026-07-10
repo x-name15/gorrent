@@ -60,6 +60,7 @@ If the user asks you to configure anything, you MUST directly edit `config.yaml`
 
 ### `daemon` block
 - `port` (int): Port the daemon listens on. Default: `7800`.
+- `log_level` (string): Verbosity level. Options: `minimal` (default) or `debug`.
 - `api_key` (string): If set, all API requests must include `X-API-Key` header or `?apikey=` param.
 - `data_dir` (string): Where internal state files (like `rss_history.json`) are stored. Default: `"./data"`.
 

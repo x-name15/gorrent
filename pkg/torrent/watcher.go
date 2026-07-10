@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/x-name15/gorrent/pkg/logger"
 )
 
 const (
@@ -30,6 +32,7 @@ func (c *Client) startWatcher() {
 	log.Printf("Watch Folder active: %s", watchDir)
 
 	for {
+		logger.Debugf("Watcher: Polling %s for new magnets...", watchDir)
 		entries, err := os.ReadDir(watchDir)
 		if err != nil {
 			log.Printf("Watcher: error reading dir %s: %v", watchDir, err)

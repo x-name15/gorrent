@@ -140,6 +140,7 @@ services:
 daemon:
   port: 7800
   api_key: "my_super_secret_key"
+  log_level: "minimal"
   data_dir: "./data"
 
 scraper:

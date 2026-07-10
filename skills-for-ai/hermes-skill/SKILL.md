@@ -59,6 +59,7 @@ If the user asks you to automate something, DO NOT ask them to edit files. YOU m
 
 ### `daemon` block
 - `port` (int): Daemon port. Default `7800`.
+- `log_level` (string): Verbosity level. Options: `minimal` (default) or `debug`.
 - `api_key` (string): If set, all requests must include `X-API-Key` header or `?apikey=` param.
 - `data_dir` (string): Directory for internal state files. Default `"./data"`.
 

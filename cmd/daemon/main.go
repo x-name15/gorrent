@@ -15,6 +15,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/x-name15/gorrent/pkg/config"
+	"github.com/x-name15/gorrent/pkg/logger"
 	"github.com/x-name15/gorrent/pkg/netutil"
 	"github.com/x-name15/gorrent/pkg/rss"
 	"github.com/x-name15/gorrent/pkg/scraper"
@@ -39,6 +40,11 @@ func main() {
 	if err != nil {
 		log.Println("Could not load config.yaml, using defaults:", err)
 		cfg = config.Default()
+	}
+
+	if cfg.Daemon.LogLevel == "debug" {
+		logger.Level = "debug"
+		log.Println("Debug logging enabled")
 	}
 
 	torrentCli, err := torrent.NewClient(&cfg.Torrent, cfg.Daemon.DataDir)
@@ -136,6 +142,8 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logger.Debugf("API GET /api/search - Remote: %s, Query: '%s'", r.RemoteAddr, query)
+
 	source := r.URL.Query().Get("source")
 	results := s.scraperMgr.Search(r.Context(), query, source)
 
@@ -161,6 +169,8 @@ func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid JSON body", http.StatusBadRequest)
 		return
 	}
+
+	logger.Debugf("API POST /api/download - Remote: %s, Auto: '%s', Magnet: '%s'", r.RemoteAddr, req.Auto, req.Magnet)
 
 	magnetToDownload := req.Magnet
 

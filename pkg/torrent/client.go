@@ -11,6 +11,7 @@ import (
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/storage"
 	"github.com/x-name15/gorrent/pkg/config"
+	"github.com/x-name15/gorrent/pkg/logger"
 	"golang.org/x/time/rate"
 )
 
@@ -159,6 +160,7 @@ func (c *Client) startGC() {
 			}
 			length := t.Length()
 			if length == 0 || t.BytesCompleted() < length {
+				logger.Debugf("GC: Skipping %s (still downloading or empty)", t.InfoHash().HexString())
 				continue // Still downloading or empty
 			}
 
@@ -167,9 +169,12 @@ func (c *Client) startGC() {
 			drop := false
 
 			// Check Ratio
-			if c.cfg.SeedRatio > 0 && ratio >= c.cfg.SeedRatio {
-				log.Printf("GC: Dropping %s (Ratio %.2f reached)", t.Name(), ratio)
-				drop = true
+			if c.cfg.SeedRatio > 0 {
+				logger.Debugf("GC: Checking %s - Ratio: %.2f / %.2f", t.Name(), ratio, c.cfg.SeedRatio)
+				if ratio >= c.cfg.SeedRatio {
+					log.Printf("GC: Dropping %s (Ratio %.2f reached)", t.Name(), ratio)
+					drop = true
+				}
 			}
 
 			// Check Days Completed (using file modification time as heuristic)

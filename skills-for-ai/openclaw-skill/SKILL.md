@@ -76,6 +76,7 @@ If the user asks you to configure anything, directly modify `config.yaml`. Full 
 
 ### `daemon` block
 - `port` (int): Daemon port. Default `7800`.
+- `log_level` (string): Verbosity level. Options: `minimal` (default) or `debug`.
 - `api_key` (string): Shared secret for auth.
 - `data_dir` (string): State files directory. Default `"./data"`.
 
