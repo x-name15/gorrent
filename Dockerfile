@@ -22,7 +22,7 @@ COPY --from=builder /app/bin/gorrentd /gorrentd
 COPY --from=builder /app/bin/gorrent /gorrent
 
 # Optional: Default config fallback inside the image
-COPY config.json /config.json
+COPY config.yaml /config.yaml
 
 EXPOSE 7800
 CMD ["/gorrentd"]

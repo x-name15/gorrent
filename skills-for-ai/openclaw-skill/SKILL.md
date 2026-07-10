@@ -72,7 +72,7 @@ Requires authentication if `api_key` is set. Ideal for streaming video directly 
 Example: `GET /files/Movie.Name/video.mkv`
 
 ## Config Automation (Zero-Touch UX)
-If the user asks you to configure anything, directly modify `config.json`. Full schema:
+If the user asks you to configure anything, directly modify `config.yaml`. Full schema:
 
 ### `daemon` block
 - `port` (int): Daemon port. Default `7800`.
@@ -81,7 +81,7 @@ If the user asks you to configure anything, directly modify `config.json`. Full 
 
 ### `scraper` block
 - `sources` (array): Active scrapers. Valid: `yts`, `nyaa`, `piratebay`, `1337x`, `eztv`, `subsplease`, `fitgirl`, `torrentscsv`, `rutracker`, `bittorrented`.
-- `filters` (object): e.g. `{"language": "spanish", "quality": "1080p"}`.
+- `filters` (map): e.g. `language: spanish` and `quality: 1080p`.
 - `dns` (string): DNS-over-HTTPS resolver. e.g. `"cloudflare"`, `"google"`, or raw IP.
 - `rutracker_cookie` (string): RuTracker `bb_session` cookie.
 
@@ -89,7 +89,7 @@ If the user asks you to configure anything, directly modify `config.json`. Full 
 - `download_dir` (string): Root download directory.
 - `auto_export_torrent` (bool): Auto-save `.torrent` file alongside each download.
 - `trackers` (array): Extra UDP/HTTP trackers appended to every magnet link.
-- `category_dirs` (object): Category → absolute path mapping. e.g. `{"movies": "/downloads/movies"}`.
+- `category_dirs` (map): Category → absolute path mapping. e.g. `movies: /downloads/movies`.
 - `max_download_rate` (int, KB/s): Download cap. `0` = unlimited.
 - `max_upload_rate` (int, KB/s): Upload/seed cap. `0` = unlimited.
 - `auto_cleanup` (bool): Default `false`. Enables Garbage Collector.

@@ -94,7 +94,7 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
 
           # Wrapper scripts and config to include in bundles
-          FILES="gorrent.sh gorrent.bat config.json docker-compose.yml"
+          FILES="gorrent.sh gorrent.bat config.yaml docker-compose.yml"
 
           # Windows (Zip Bundle)
           CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o gorrent-daemon.exe ./cmd/daemon

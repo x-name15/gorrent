@@ -5,11 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.4] - 2026-07-10 — We use YAML now 
+
+### Changed
+- **Config Format**: Migrated the default configuration file from `config.json` to `config.yaml`. This provides a much cleaner, human-readable format that supports `# comments` natively. This change drastically reduces token usage and formatting errors for AI Agents (Claude, Hermes, OpenClaw) when automating Gorrent setups.
+
+### Documentation
+- **README Updates**: Updated the documentation and examples to strictly use YAML formatting instead of JSON to match the new default `config.yaml`.
+
+---
 ## [1.6.3] - 2026-07-10 — Security, Stability and Testing Update
 
 ### Added
 - **CI / CD Pipeline**: Upgraded `.github/workflows/entry.yaml` to run tests with the `-race` detector and `-shuffle=on` flags to ensure test stability and concurrency safety before any build.
-- **Security guards against Path Traversal**: Added rigorous `filepath.Clean` and `strings.HasPrefix` validation to `watcher.go` and `client.go`. This prevents malicious symlinks or filenames like `../../config.json` from escaping the `watch_dir` and overwriting sensitive files.
+- **Security guards against Path Traversal**: Added rigorous `filepath.Clean` and `strings.HasPrefix` validation to `watcher.go` and `client.go`. This prevents malicious symlinks or filenames like `../../config.yaml` from escaping the `watch_dir` and overwriting sensitive files.
 - **Memory Exhaustion Protections (RAM Bomb)**: Implemented `io.LimitReader` (up to 5MB) when reading JSON API responses (like `bittorrented`) and `.magnet` files in the Watch Folder, preventing intentional OOM (Out Of Memory) attacks.
 - **Directory Listing Prevention**: Wrapped the `/files/` endpoint in `netutil.DisableDirListing` to throw `os.ErrNotExist` (404) on directory access, strictly serving only specific files.
 - **Scraper Mock Integration Tests**: Built an entire mock-test suite in `internal/tests` for all 10 scrapers (1337x, BitTorrented, EZTV, FitGirl, Nyaa, PirateBay, RuTracker, SubsPlease, Torrents.csv, YTS). These tests act as a 1:1 simulation of Torlink's logic, asserting that Gorrent safely and accurately parses exact Torlink-style HTML/JSON payloads without ever hitting real internet services. The `internal/tests` folder and `*_test.go` files are entirely isolated and blocked from Docker via `.dockerignore`.
@@ -41,7 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Native Hardlinking**: Added `hardlink_dir` config parameter. Gorrent now automatically creates zero-byte hardlinks (preserving category folders) for completed downloads, allowing seamless integration with Plex/Jellyfin without interrupting the seeding process.
 - **Post-Processing Scripts**: Added `post_script` config parameter. Gorrent can now execute any script when a torrent reaches 100%. Environment variables (`GORRENT_HASH`, `GORRENT_NAME`, `GORRENT_PATH`, `GORRENT_CATEGORY`) are injected automatically. For Docker deployments, use the `callback` webhook instead.
 - **Post-Processing State Manager**: Created a background engine that writes `gorrent_processed.json` to `data_dir` to guarantee scripts and links are executed exactly once per torrent.
-- **AI Skills Full Awareness**: Taught Claude, Hermes, and OpenClaw how to manipulate all v1.6.0 parameters via `config.json` so users can enable these features strictly via natural language.
+- **AI Skills Full Awareness**: Taught Claude, Hermes, and OpenClaw how to manipulate all v1.6.0 parameters via `config.yaml` so users can enable these features strictly via natural language.
 
 ### Fixed
 - **RSS — Nyaa/ShowRSS magnet resolution**: RSS parser now correctly extracts magnet links from `<enclosure url="magnet:...">` and `<torrent:magnetURI>` fields. Previously only read `<link>`, which for Nyaa is a page URL, not a magnet.
@@ -61,8 +70,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **RSS Auto-Downloader**: Added native, zero-dependency XML parser to monitor RSS feeds (e.g. Nyaa, ShowRSS) and automatically download torrents matching your Regex rules into specific categories. Maintains a clean `rss_history.json` state in your data directory to prevent duplicates.
-- **P2P Garbage Collector**: Added optional Auto-Cleanup system (`auto_cleanup` in `config.json`). Drops active torrents from the daemon once they reach a target `seed_ratio` (e.g. 1.5) or `max_seed_days` to conserve bandwidth and RAM. Downloaded files are kept 100% intact for Plex/Jellyfin.
-- **AI Agent Skills Updated**: Taught Claude, Hermes, and OpenClaw how to manage the new RSS feeds, Auto-Cleanup settings, and Bandwidth Throttling directly via `config.json`, as well as interacting with the public `/metrics` endpoint.
+- **P2P Garbage Collector**: Added optional Auto-Cleanup system (`auto_cleanup` in `config.yaml`). Drops active torrents from the daemon once they reach a target `seed_ratio` (e.g. 1.5) or `max_seed_days` to conserve bandwidth and RAM. Downloaded files are kept 100% intact for Plex/Jellyfin.
+- **AI Agent Skills Updated**: Taught Claude, Hermes, and OpenClaw how to manage the new RSS feeds, Auto-Cleanup settings, and Bandwidth Throttling directly via `config.yaml`, as well as interacting with the public `/metrics` endpoint.
 - **OpenAPI Specification**: Fully synchronized `cmd/daemon/openapi.yaml` with v1.5.x, including exact `X-API-Key` authentication mappings, the new `source` search parameters, and async webhook `callback` fields.
 
 ---
@@ -76,7 +85,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.5.0] - 2026-07-08 — The Homelab Grail Update
 
 ### Added
-- **Bandwidth Throttling**: Added `max_download_rate` and `max_upload_rate` (in KB/s) to `config.json` to prevent Gorrent from choking your local network.
+- **Bandwidth Throttling**: Added `max_download_rate` and `max_upload_rate` (in KB/s) to `config.yaml` to prevent Gorrent from choking your local network.
 - **WebSocket Endpoint**: Added `ws://localhost:7800/api/ws` to stream live download status at 1Hz, paving the way for real-time Web UIs.
 - **Prometheus Metrics & Healthcheck**: Added `/metrics` exposing raw Prometheus format stats (`gorrent_bytes_downloaded`, etc.) and a `/health` endpoint for Docker auto-healing.
 - **AI Agent Skills Updated**: Fully updated the bundled `.md` skills for Claude, Hermes, and OpenClaw so that AI agents natively understand how to use the new `--category` flag, `stop` commands, `X-API-Key` headers, and WebSockets.
@@ -85,11 +94,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.5] - 2026-07-08 — Auto-Export, Security & Download Management
 
 ### Added
-- **Auto-Export .torrent files**: Gorrent can now optionally export a `.torrent` backup file into your `downloads` directory the moment it finishes fetching the metadata for any magnet link (Issue #61). This feature is disabled by default to prevent clutter, and can be enabled by setting `"auto_export_torrent": true` in the `torrent` section of your `config.json`.
+- **Auto-Export .torrent files**: Gorrent can now optionally export a `.torrent` backup file into your `downloads` directory the moment it finishes fetching the metadata for any magnet link (Issue #61). This feature is disabled by default to prevent clutter, and can be enabled by setting `"auto_export_torrent": true` in the `torrent` section of your `config.yaml`.
 - **Stop & Delete Torrents**: Added a new `DELETE /api/torrent?hash=...` endpoint and a `./gorrent.sh stop <hash>` CLI command to abort and clean up active downloads.
 - **API Key Security**: Added optional API Key authentication. Set `"api_key": "your_secret"` in the `daemon` config block to secure the REST API against unauthorized access on your local network. The CLI wrapper automatically uses it.
 - **Bare Infohash Support**: Gorrent can now accept a raw 40-character infohash instead of a full magnet link for downloads 
-- **Custom Trackers**: You can now define an array of `"trackers"` in the `torrent` block of your `config.json`. These trackers will be automatically injected into every magnet link processed by the daemon, boosting DHT peer discovery
+- **Custom Trackers**: You can now define an array of `"trackers"` in the `torrent` block of your `config.yaml`. These trackers will be automatically injected into every magnet link processed by the daemon, boosting DHT peer discovery
 - **Category-Based Directories**: The CLI and API now support an optional `--category` flag (e.g. `--category movies`). Gorrent will save the torrent in a subfolder named after the category (e.g. `/downloads/movies`), or map it to a specific directory if defined in the new `"category_dirs"` config object. Perfect for homelab media server organization!
 
 ---
@@ -130,7 +139,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **REST API**: Endpoints (`/api/search`, `/api/download`, `/api/status`) designed for seamless AI integration.
 - **CLI Wrappers**: Included `gorrent.sh` and `gorrent.bat` for transparent local usage.
 - **Concurrent Scraping**: 9 supported sources out of the box (YTS, 1337x, Nyaa, PirateBay, FitGirl, RuTracker, SubsPlease, EZTV, TorrentsCSV).
-- **Agnostic Scoring Engine**: Dynamic regex word-boundary filtering loaded from `config.json` for precise ranking.
+- **Agnostic Scoring Engine**: Dynamic regex word-boundary filtering loaded from `config.yaml` for precise ranking.
 - **Embedded P2P Client**: Fully integrated BitTorrent client using `anacrolix/torrent` with a 30-second Dead Torrent Protection feature.
 - **DoH (DNS-over-HTTPS)**: Built-in hijacking of HTTP transport to evade ISP censorship via Cloudflare or other public resolvers.
 - **Circuit Breakers**: Intelligent cooldown for failing trackers to prevent search hangs.

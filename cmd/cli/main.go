@@ -19,7 +19,7 @@ var DaemonURL string
 var APIKey string
 
 func init() {
-	cfg, err := config.Load("config.json")
+	cfg, err := config.Load("config.yaml")
 	if err != nil {
 		cfg = config.Default()
 	}

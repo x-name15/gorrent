@@ -3,7 +3,7 @@ name: Gorrent
 description: Control and interact with Gorrent, a headless homelab P2P torrent client. Search, score, and download torrents automatically.
 
 ## Overview
-Gorrent is a headless automation-first torrent client built in Go. It runs in a Docker container and exposes a CLI wrapper and a REST API. You can use this skill to search for torrents, download them to the local `downloads/` directory, check download status, and fully configure all automation via `config.json`.
+Gorrent is a headless automation-first torrent client built in Go. It runs in a Docker container and exposes a CLI wrapper and a REST API. You can use this skill to search for torrents, download them to the local `downloads/` directory, check download status, and fully configure all automation via `config.yaml`.
 
 ## How to use Gorrent
 
@@ -37,7 +37,7 @@ These are thin wrappers around `docker exec -it gorrent /gorrent "$@"`.
 **Available `--source` values** (restrict search to one scraper):
 `yts`, `nyaa`, `piratebay`, `1337x`, `eztv`, `subsplease`, `fitgirl`, `torrentscsv`, `rutracker`, `bittorrented`
 
-**Available `--category` values** (routes file to category folder configured in `config.json`):
+**Available `--category` values** (routes file to category folder configured in `config.yaml`):
 e.g. `movies`, `tvshows`, `anime` — or whatever the user has set in `category_dirs`.
 
 **`--callback <url>`**: Gorrent will POST `{"event":"completed","name":"...","hash":"..."}` to this URL when the download hits 100%.
@@ -56,7 +56,7 @@ Daemon listens on `http://localhost:7800`. If `api_key` is set in config, includ
 - **OpenAPI Docs**: `GET /api/docs` — returns the full OpenAPI YAML spec (no auth needed)
 
 ## Advanced Config Automation (Zero-Touch User Experience)
-If the user asks you to configure anything, you MUST directly edit `config.json` — do NOT ask them to do it manually. You have full awareness of every config field:
+If the user asks you to configure anything, you MUST directly edit `config.yaml` — do NOT ask them to do it manually. You have full awareness of every config field:
 
 ### `daemon` block
 - `port` (int): Port the daemon listens on. Default: `7800`.
@@ -65,7 +65,7 @@ If the user asks you to configure anything, you MUST directly edit `config.json`
 
 ### `scraper` block
 - `sources` (array of strings): Active scrapers. Valid values: `yts`, `nyaa`, `piratebay`, `1337x`, `eztv`, `subsplease`, `fitgirl`, `torrentscsv`, `rutracker`, `bittorrented`.
-- `filters` (object): Key/value filters like `{"language": "spanish", "quality": "1080p"}`.
+- `filters` (map): Key/value filters (e.g. `language: spanish` and `quality: 1080p`).
 - `dns` (string): DNS resolver for all HTTP requests. e.g. `"cloudflare"`, `"google"`, or a raw IP `"8.8.8.8"`.
 - `rutracker_cookie` (string): Your RuTracker `bb_session` cookie. Only needed to activate that scraper.
 
@@ -73,7 +73,7 @@ If the user asks you to configure anything, you MUST directly edit `config.json`
 - `download_dir` (string): Root download directory.
 - `auto_export_torrent` (bool): Auto-save a `.torrent` file alongside each download.
 - `trackers` (array of strings): Extra UDP/HTTP trackers appended to every magnet.
-- `category_dirs` (object): Map of category → absolute path. e.g. `{"movies": "/downloads/movies"}`.
+- `category_dirs` (map): Map of category → absolute path. e.g. `movies: /downloads/movies`.
 - `max_download_rate` (int, KB/s): Bandwidth cap for downloads. `0` = unlimited.
 - `max_upload_rate` (int, KB/s): Bandwidth cap for uploads/seeding. `0` = unlimited.
 - `auto_cleanup` (bool): **Optional, default false.** Enable the P2P Garbage Collector.

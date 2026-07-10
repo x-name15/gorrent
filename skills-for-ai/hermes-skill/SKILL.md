@@ -55,7 +55,7 @@ Use the local `gorrent` CLI wrapper (`gorrent.sh` on macOS/Linux, `gorrent.bat` 
 **`--callback <url>`:** Gorrent will POST `{"event":"completed","name":"...","hash":"..."}` to this URL when download finishes.
 
 ## Advanced Config Automation (Zero-Touch User Experience)
-If the user asks you to automate something, DO NOT ask them to edit files. YOU must directly edit the `config.json` file in the project root. Full schema:
+If the user asks you to automate something, DO NOT ask them to edit files. YOU must directly edit the `config.yaml` file in the project root. Full schema:
 
 ### `daemon` block
 - `port` (int): Daemon port. Default `7800`.
@@ -64,7 +64,7 @@ If the user asks you to automate something, DO NOT ask them to edit files. YOU m
 
 ### `scraper` block
 - `sources` (array): Active scrapers. Valid: `yts`, `nyaa`, `piratebay`, `1337x`, `eztv`, `subsplease`, `fitgirl`, `torrentscsv`, `rutracker`, `bittorrented`.
-- `filters` (object): e.g. `{"language": "spanish"}`.
+- `filters` (map): e.g. `language: spanish`.
 - `dns` (string): DNS resolver. e.g. `"cloudflare"`, `"google"`, `"8.8.8.8"`.
 - `rutracker_cookie` (string): RuTracker `bb_session` cookie (only needed to activate that source).
 
@@ -72,7 +72,7 @@ If the user asks you to automate something, DO NOT ask them to edit files. YOU m
 - `download_dir` (string): Root download path.
 - `auto_export_torrent` (bool): Auto-saves `.torrent` file alongside download.
 - `trackers` (array): Extra UDP/HTTP trackers appended to every magnet.
-- `category_dirs` (object): Map of category name → absolute path. e.g. `{"movies":"/downloads/movies"}`.
+- `category_dirs` (map): Map of category name → absolute path. e.g. `movies: /downloads/movies`.
 - `max_download_rate` (int, KB/s): Download speed cap. `0` = unlimited.
 - `max_upload_rate` (int, KB/s): Upload/seed speed cap. `0` = unlimited.
 - `auto_cleanup` (bool): Default `false`. Enables P2P Garbage Collector.

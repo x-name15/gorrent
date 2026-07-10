@@ -35,9 +35,9 @@ type Server struct {
 }
 
 func main() {
-	cfg, err := config.Load("config.json")
+	cfg, err := config.Load("config.yaml")
 	if err != nil {
-		log.Println("Could not load config.json, using defaults:", err)
+		log.Println("Could not load config.yaml, using defaults:", err)
 		cfg = config.Default()
 	}
 

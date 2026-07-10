@@ -70,7 +70,7 @@ Gorrent incorporates techniques to ensure automated environments remain resilien
 
 Gorrent scores and ranks torrents based on your preferences using a data-driven Regex engine under the hood:
 *   **Seeders Base Score:** Every torrent starts with a score equal to its active seeders.
-*   **Agnostic Term Matching:** You provide a comma-separated list of terms in your `config.json` (e.g., `"language": "latino, es"`). Gorrent automatically compiles these into precise, word-boundary Regular Expressions. This ensures that a search for `es` matches the exact language code "es", but ignores the "es" inside the word "Series", without requiring you to write a regex yourself.
+*   **Agnostic Term Matching:** You provide a comma-separated list of terms in your `config.yaml` (e.g., `"language": "latino, es"`). Gorrent automatically compiles these into precise, word-boundary Regular Expressions. This ensures that a search for `es` matches the exact language code "es", but ignores the "es" inside the word "Series", without requiring you to write a regex yourself.
 
 ## API
 
@@ -130,63 +130,62 @@ services:
       - "7800:7800"
     volumes:
       # Map your config file and downloads folder
-      - ./config.json:/config.json
+      - ./config.yaml:/config.yaml
       - ./downloads:/downloads
     restart: unless-stopped
 ```
 
-2. **Create your `config.json`**:
-```json
-{
-  "daemon": {
-    "port": 7800,
-    "api_key": "my_super_secret_key",
-    "data_dir": "./data"
-  },
-  "scraper": {
-    "dns": "cloudflare",
-    "rutracker_cookie": "tu_bb_session_cookie_aqui_opcional",
-    "sources": [
-      "yts", "1337x", "nyaa", "piratebay", 
-      "fitgirl", "subsplease", "torrentscsv", "rutracker", "bittorrented"
-    ],
-    "filters": {
-      "language": "latino, castellano, multi-subs, es",
-      "resolution": "1080p, 1080i",
-      "min_seeders": "5"
-    }
-  },
-  "torrent": {
-    "download_dir": "/downloads",
-    "auto_export_torrent": true,
-    "max_download_rate": 5000,
-    "max_upload_rate": 0,
-    "auto_cleanup": true,
-    "seed_ratio": 1.5,
-    "max_seed_days": 3,
-    "hardlink_dir": "/mnt/media",
-    "post_script": "/opt/scripts/unrar.sh",
-    "watch_dir": "/downloads/watch",
-    "delete_files_on_stop": false,
-    "trackers": [
-      "udp://tracker.opentrackr.org:1337/announce"
-    ],
-    "category_dirs": {
-      "movies": "/downloads/movies",
-      "tvshows": "/downloads/tvshows"
-    }
-  },
-  "rss": {
-    "interval_min": 30,
-    "feeds": [
-      {
-        "url": "https://nyaa.si/?page=rss&q=subsplease+1080p",
-        "category": "tvshows",
-        "regex": ["Arcane", "Solo Leveling"]
-      }
-    ]
-  }
-}
+2. **Create your `config.yaml`**:
+```yaml
+daemon:
+  port: 7800
+  api_key: "my_super_secret_key"
+  data_dir: "./data"
+
+scraper:
+  dns: "cloudflare"
+  rutracker_cookie: "tu_bb_session_cookie_aqui_opcional"
+  sources:
+    - yts
+    - 1337x
+    - nyaa
+    - piratebay
+    - fitgirl
+    - subsplease
+    - torrentscsv
+    - rutracker
+    - bittorrented
+  filters:
+    language: "latino, castellano, multi-subs, es"
+    resolution: "1080p, 1080i"
+    min_seeders: "5"
+
+torrent:
+  download_dir: "/downloads"
+  auto_export_torrent: true
+  max_download_rate: 5000
+  max_upload_rate: 0
+  auto_cleanup: true
+  seed_ratio: 1.5
+  max_seed_days: 3
+  hardlink_dir: "/mnt/media"
+  post_script: "/opt/scripts/unrar.sh"
+  watch_dir: "/downloads/watch"
+  delete_files_on_stop: false
+  trackers:
+    - "udp://tracker.opentrackr.org:1337/announce"
+  category_dirs:
+    movies: "/downloads/movies"
+    tvshows: "/downloads/tvshows"
+
+rss:
+  interval_min: 30
+  feeds:
+    - url: "https://nyaa.si/?page=rss&q=subsplease+1080p"
+      category: "tvshows"
+      regex:
+        - "Arcane"
+        - "Solo Leveling"
 ```
 
 3. **Start the daemon**:
@@ -201,7 +200,7 @@ docker compose up -d
 
 ### Post-Processing Scripts (Unzipping / Moving)
 If you download Repacks (like FitGirl) or Scene releases, you'll often end up with `.rar` or `.zip` files.
-Gorrent can automatically run a bash script when a download reaches 100%. Set the `post_script` field in `config.json` to the path of your script (e.g. `"/opt/scripts/unrar.sh"`).
+Gorrent can automatically run a bash script when a download reaches 100%. Set the `post_script` field in `config.yaml` to the path of your script (e.g. `"/opt/scripts/unrar.sh"`).
 
 Gorrent will execute your script and inject the following environment variables:
 - `GORRENT_HASH`: The InfoHash of the torrent.
@@ -211,7 +210,7 @@ Gorrent will execute your script and inject the following environment variables:
 
 We provide an example `unrar.sh` script in the `examples/` directory of this repository!
 
-If you don't provide a `config.json`, Gorrent will load sane defaults, but mapping it is highly recommended to tune your preferred sources and filters.
+If you don't provide a `config.yaml`, Gorrent will load sane defaults, but mapping it is highly recommended to tune your preferred sources and filters.
 > **Tip:** Don't want to use a specific tracker? Simply remove its name from the `"sources"` array in your config file.
 
 ## Optional CLI

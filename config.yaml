@@ -1,0 +1,80 @@
+# ==========================================
+# GORRENT CONFIGURATION FILE
+# ==========================================
+
+daemon:
+  port: 7800
+  api_key: ""
+  # Directory where Gorrent saves internal state (like rss_history.json)
+  data_dir: "./data"
+
+scraper:
+  # DNS over HTTPS resolver. Options: "cloudflare", "google", or "8.8.8.8"
+  dns: "cloudflare"
+  rutracker_cookie: ""
+  
+  # Active search engines
+  sources:
+    - yts
+    - 1337x
+    - nyaa
+    - piratebay
+    - fitgirl
+    - subsplease
+    - torrentscsv
+    - rutracker
+  
+  # Regex word-boundary filters
+  filters:
+    language: "latino, castellano, multi-subs, es"
+    resolution: "1080p, 1080i"
+    min_seeders: "5"
+
+torrent:
+  # Base download path
+  download_dir: "/downloads"
+  
+  # Automatically export a .torrent file alongside the downloaded files
+  auto_export_torrent: false
+  
+  # Speed limits in KB/s (0 = unlimited)
+  max_download_rate: 0
+  max_upload_rate: 0
+  
+  # P2P Garbage Collector
+  auto_cleanup: false
+  seed_ratio: 1.5
+  max_seed_days: 3
+  
+  # Deletes downloaded files from disk when torrent is dropped by GC
+  # False by default (safest for Plex/Jellyfin)
+  delete_files_on_stop: false
+  
+  # If you want to automatically start downloads by dropping .magnet files here
+  watch_dir: ""
+  
+  # Optional path for zero-byte hardlinks (must be on same physical disk)
+  hardlink_dir: ""
+  
+  # Optional bash script to run on download completion
+  post_script: ""
+  
+  # Custom trackers appended to every magnet link to boost DHT discovery
+  trackers:
+    - "udp://tracker.opentrackr.org:1337/announce"
+  
+  # Routing downloads into specific folders based on category
+  category_dirs:
+    movies: "/downloads/movies"
+    tvshows: "/downloads/tvshows"
+
+rss:
+  # How often to check the RSS feeds (in minutes)
+  interval_min: 30
+  feeds:
+    - url: "https://nyaa.si/?page=rss&q=subsplease+1080p"
+      category: "tvshows"
+      # Empty array downloads everything. Otherwise, matches patterns (case-insensitive)
+      regex:
+        - "Arcane"
+        - "Solo Leveling"
