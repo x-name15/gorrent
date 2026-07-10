@@ -93,6 +93,12 @@ Content-Type: application/json
     "magnet": "magnet:?xt=urn:btih:..."
 }
 ```
+
+**File Streaming Request:**
+You can stream downloaded files directly using HTTP Range requests (ideal for VLC, browser, etc):
+```http
+GET /files/Movie.Name.1080p/video.mkv
+```
 ## AI Native Integrations
 
 Gorrent exposes interfaces specifically designed for AI agents:
@@ -142,7 +148,7 @@ services:
     "rutracker_cookie": "tu_bb_session_cookie_aqui_opcional",
     "sources": [
       "yts", "1337x", "nyaa", "piratebay", 
-      "fitgirl", "subsplease", "torrentscsv", "rutracker"
+      "fitgirl", "subsplease", "torrentscsv", "rutracker", "bittorrented"
     ],
     "filters": {
       "language": "latino, castellano, multi-subs, es",
@@ -160,6 +166,8 @@ services:
     "max_seed_days": 3,
     "hardlink_dir": "/mnt/media",
     "post_script": "/opt/scripts/unrar.sh",
+    "watch_dir": "/downloads/watch",
+    "delete_files_on_stop": false,
     "trackers": [
       "udp://tracker.opentrackr.org:1337/announce"
     ],

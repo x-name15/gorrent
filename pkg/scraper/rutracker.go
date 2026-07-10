@@ -30,6 +30,10 @@ func NewRuTracker(cookie string) search.Source {
 	}
 }
 
+func (s *rutracker) InjectClient(c *http.Client) {
+	s.client = c
+}
+
 func (s *rutracker) ID() string {
 	return "rutracker"
 }

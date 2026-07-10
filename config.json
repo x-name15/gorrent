@@ -27,6 +27,8 @@
     "max_seed_days": 3,
     "hardlink_dir": "",
     "post_script": "",
+    "watch_dir": "",
+    "delete_files_on_stop": false,
     "trackers": [
       "udp://tracker.opentrackr.org:1337/announce"
     ],

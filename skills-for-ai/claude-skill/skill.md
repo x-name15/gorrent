@@ -35,7 +35,7 @@ These are thin wrappers around `docker exec -it gorrent /gorrent "$@"`.
 ```
 
 **Available `--source` values** (restrict search to one scraper):
-`yts`, `nyaa`, `piratebay`, `1337x`, `eztv`, `subsplease`, `fitgirl`, `torrentscsv`, `rutracker`
+`yts`, `nyaa`, `piratebay`, `1337x`, `eztv`, `subsplease`, `fitgirl`, `torrentscsv`, `rutracker`, `bittorrented`
 
 **Available `--category` values** (routes file to category folder configured in `config.json`):
 e.g. `movies`, `tvshows`, `anime` — or whatever the user has set in `category_dirs`.
@@ -52,6 +52,7 @@ Daemon listens on `http://localhost:7800`. If `api_key` is set in config, includ
 - **WebSocket**: `ws://localhost:7800/api/ws` — streams status every 1s
 - **Metrics**: `GET /metrics` — Prometheus text (no auth needed). Exports: `gorrent_torrents_active`, `gorrent_bytes_downloaded`, `gorrent_bytes_uploaded`
 - **Health**: `GET /health` — returns `{"status":"ok"}` (no auth needed)
+- **File Streaming**: `GET /files/<relative/path>` — serves files from `download_dir` with full HTTP Range support. Ideal for streaming video to VLC, browser, or media players without moving files. Auth required if `api_key` is set.
 - **OpenAPI Docs**: `GET /api/docs` — returns the full OpenAPI YAML spec (no auth needed)
 
 ## Advanced Config Automation (Zero-Touch User Experience)
@@ -63,7 +64,7 @@ If the user asks you to configure anything, you MUST directly edit `config.json`
 - `data_dir` (string): Where internal state files (like `rss_history.json`) are stored. Default: `"./data"`.
 
 ### `scraper` block
-- `sources` (array of strings): Active scrapers. Valid values: `yts`, `nyaa`, `piratebay`, `1337x`, `eztv`, `subsplease`, `fitgirl`, `torrentscsv`, `rutracker`.
+- `sources` (array of strings): Active scrapers. Valid values: `yts`, `nyaa`, `piratebay`, `1337x`, `eztv`, `subsplease`, `fitgirl`, `torrentscsv`, `rutracker`, `bittorrented`.
 - `filters` (object): Key/value filters like `{"language": "spanish", "quality": "1080p"}`.
 - `dns` (string): DNS resolver for all HTTP requests. e.g. `"cloudflare"`, `"google"`, or a raw IP `"8.8.8.8"`.
 - `rutracker_cookie` (string): Your RuTracker `bb_session` cookie. Only needed to activate that scraper.
@@ -79,7 +80,9 @@ If the user asks you to configure anything, you MUST directly edit `config.json`
 - `seed_ratio` (float): GC trigger — drops torrent when upload/download ratio reaches this value (e.g. `1.5`).
 - `max_seed_days` (int): GC trigger — drops torrent after it has been seeding for this many days.
 - `hardlink_dir` (string): **Optional.** Root directory where zero-byte hardlinks of completed torrents are created for Plex/Jellyfin. MUST be on the same physical disk as `download_dir`.
-- `post_script` (string): **Optional.** Path to a bash script executed on download completion. Receives env vars: `GORRENT_HASH`, `GORRENT_NAME`, `GORRENT_PATH`, `GORRENT_CATEGORY`.
+- `post_script` (string): **Optional.** Path to a script executed on download completion. Receives env vars: `GORRENT_HASH`, `GORRENT_NAME`, `GORRENT_PATH`, `GORRENT_CATEGORY`. For Docker use the `callback` webhook instead.
+- `watch_dir` (string): **Optional, default empty (disabled).** Gorrent polls this directory every 5 seconds. Drop a `.magnet` or `.txt` file containing a magnet URI and Gorrent auto-downloads it. Processed files are archived to `watch_dir/handled/`.
+- `delete_files_on_stop` (bool): **Optional, default false.** When the GC drops a torrent, also permanently delete its files from disk. Default is `false` — Gorrent's philosophy is to always keep files for Plex/Jellyfin. Only set to `true` if the user explicitly wants disk space rotation. This is irreversible.
 
 ### `rss` block
 - `interval_min` (int): How often to poll all RSS feeds (in minutes).

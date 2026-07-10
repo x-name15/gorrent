@@ -2,7 +2,7 @@ openapi: 3.0.0
 info:
   title: Gorrent API
   description: Headless torrent search and download daemon for homelab automation.
-  version: 1.6.0
+  version: 1.6.3
 servers:
   - url: http://localhost:7800
     description: Gorrent Daemon
@@ -25,7 +25,7 @@ paths:
           required: false
           description: >
             Restrict search to a single scraper. Valid values:
-            yts, nyaa, piratebay, 1337x, eztv, subsplease, fitgirl, torrentscsv, rutracker
+            yts, nyaa, piratebay, 1337x, eztv, subsplease, fitgirl, torrentscsv, rutracker, bittorrented
           schema:
             type: string
       responses:
@@ -186,6 +186,31 @@ paths:
                 gorrent_torrents_active 2
                 gorrent_bytes_downloaded 104857600
                 gorrent_bytes_uploaded 52428800
+
+  /files/{path}:
+    get:
+      summary: Stream a downloaded file with HTTP Range support.
+      description: >
+        Serves files from the configured download_dir over HTTP. Supports the
+        Range header for partial content (ideal for video streaming in Plex,
+        Jellyfin, or a browser). Requires authentication if api_key is set.
+        Path is relative to download_dir (e.g. /files/Movie.Name/video.mkv).
+      parameters:
+        - name: path
+          in: path
+          required: true
+          description: Relative path to the file under download_dir
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Full file content
+        '206':
+          description: Partial content (Range request)
+        '401':
+          description: Unauthorized
+        '404':
+          description: File not found
 
 components:
   schemas:

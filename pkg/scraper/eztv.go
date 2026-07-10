@@ -22,6 +22,10 @@ func NewEZTV() search.Source {
 	}
 }
 
+func (s *eztv) InjectClient(c *http.Client) {
+	s.client = c
+}
+
 func (s *eztv) ID() string {
 	return "eztv"
 }

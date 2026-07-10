@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.3] - 2026-07-10 — Security, Stability and Testing Update
+
+### Added
+- **CI / CD Pipeline**: Upgraded `.github/workflows/entry.yaml` to run tests with the `-race` detector and `-shuffle=on` flags to ensure test stability and concurrency safety before any build.
+- **Security guards against Path Traversal**: Added rigorous `filepath.Clean` and `strings.HasPrefix` validation to `watcher.go` and `client.go`. This prevents malicious symlinks or filenames like `../../config.json` from escaping the `watch_dir` and overwriting sensitive files.
+- **Memory Exhaustion Protections (RAM Bomb)**: Implemented `io.LimitReader` (up to 5MB) when reading JSON API responses (like `bittorrented`) and `.magnet` files in the Watch Folder, preventing intentional OOM (Out Of Memory) attacks.
+- **Directory Listing Prevention**: Wrapped the `/files/` endpoint in `netutil.DisableDirListing` to throw `os.ErrNotExist` (404) on directory access, strictly serving only specific files.
+- **Scraper Mock Integration Tests**: Built an entire mock-test suite in `internal/tests` for all 10 scrapers (1337x, BitTorrented, EZTV, FitGirl, Nyaa, PirateBay, RuTracker, SubsPlease, Torrents.csv, YTS). These tests act as a 1:1 simulation of Torlink's logic, asserting that Gorrent safely and accurately parses exact Torlink-style HTML/JSON payloads without ever hitting real internet services. The `internal/tests` folder and `*_test.go` files are entirely isolated and blocked from Docker via `.dockerignore`.
+
+### Fixed
+- **1337x Mirror Invalidations**: Implemented a `sync.RWMutex` cache for the `lastWorkingHost` so the scraper dynamically falls back on other domains if one fails, drastically increasing reliability.
+- **Daemon GC deduplication loop**: Files are now proactively moved to `handled/` before calling `AddMagnet` in `watcher.go`, preventing edge cases where the Daemon crashes between steps and downloads files twice.
+
+---
+## [1.6.2] - 2026-07-10 — The Catch-Up Update
+
+### Added
+- **Watch Folder**: Drop any `.magnet` or `.txt` file (containing a magnet URI) into the configured `watch_dir` directory and Gorrent will auto-download it within 5 seconds. Processed files are moved to `watch_dir/handled/` to prevent re-processing. Enable by setting `"watch_dir": "/path/to/watch"` in the `torrent` block. Leave empty (default) to disable.
+- **File Streaming (`/files/`)**: New HTTP endpoint that serves the entire `download_dir` over HTTP with full `Range` header support. Ideal for streaming video directly to a browser, VLC, Plex, or Jellyfin without copying files. Requires authentication if `api_key` is set. Access via `GET /files/<relative/path>`.
+- **Delete Files on GC Stop (`delete_files_on_stop`)**: Optional new `torrent` config field. When `auto_cleanup` is enabled and the GC drops a torrent (ratio or days reached), setting `"delete_files_on_stop": true` will also call `os.RemoveAll` to permanently delete the downloaded files from disk. **Default is `false`** — Gorrent's philosophy is to always keep files for Plex/Jellyfin. Only enable if you explicitly want disk space rotation.
+- **1337x Mirror Caching**: The 1337x scraper now remembers the last working mirror host in memory (thread-safe via `sync.RWMutex`). On every search, the cached host is tried first before iterating the full fallback list, reducing latency and unnecessary retries after the first successful connection.
+- **BitTorrented Scraper**: New search source powered by the `bittorrented.com` JSON API. Returns results with infohash, name, size, seeders, and leechers. Use `--source bittorrented` or add `"bittorrented"` to your `sources` list. Min query length: 3 characters. Results with invalid or incomplete infohashes are silently dropped.
+
+---
 ## [1.6.1] - 2026-07-09 — Whoops, hotfix incoming!
 
 ### Fixed

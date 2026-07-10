@@ -35,6 +35,10 @@ func NewTorrentsCSV() search.Source {
 	}
 }
 
+func (s *torrentsCsv) InjectClient(c *http.Client) {
+	s.client = c
+}
+
 func (s *torrentsCsv) ID() string {
 	return "torrentscsv"
 }

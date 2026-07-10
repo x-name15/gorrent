@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -67,6 +68,7 @@ func main() {
 	scraperMgr.Register(wrap(scraper.NewSubsPlease()))
 	scraperMgr.Register(wrap(scraper.NewFitGirl()))
 	scraperMgr.Register(wrap(scraper.NewTorrentsCSV()))
+	scraperMgr.Register(wrap(scraper.NewBitTorrented()))
 
 	if cfg.Scraper.RutrackerCookie != "" {
 		scraperMgr.Register(wrap(scraper.NewRuTracker(cfg.Scraper.RutrackerCookie)))
@@ -94,6 +96,13 @@ func main() {
 		w.Header().Set("Content-Type", "application/yaml")
 		w.Write(openapiYAML)
 	})
+
+	// File Streaming — serves download_dir over HTTP with Range support
+	fileServer := http.FileServer(netutil.DisableDirListing{FS: http.Dir(cfg.Torrent.DownloadDir)})
+	http.Handle("/files/", srv.authMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		r.URL.Path = strings.TrimPrefix(r.URL.Path, "/files")
+		fileServer.ServeHTTP(w, r)
+	}))
 
 	addr := fmt.Sprintf(":%d", cfg.Daemon.Port)
 	log.Printf("Gorrent Daemon listening on %s...", addr)

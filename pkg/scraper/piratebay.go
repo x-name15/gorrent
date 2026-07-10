@@ -33,6 +33,10 @@ func NewPirateBay() search.Source {
 	}
 }
 
+func (s *piratebay) InjectClient(c *http.Client) {
+	s.client = c
+}
+
 func (s *piratebay) ID() string {
 	return "piratebay"
 }

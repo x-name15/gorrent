@@ -24,6 +24,10 @@ func NewSubsPlease() search.Source {
 	}
 }
 
+func (s *subsplease) InjectClient(c *http.Client) {
+	s.client = c
+}
+
 func (s *subsplease) ID() string {
 	return "subsplease"
 }

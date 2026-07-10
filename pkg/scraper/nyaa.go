@@ -41,6 +41,10 @@ func NewNyaa() search.Source {
 	}
 }
 
+func (s *nyaa) InjectClient(c *http.Client) {
+	s.client = c
+}
+
 func (s *nyaa) ID() string {
 	return "nyaa"
 }

@@ -1,7 +1,7 @@
 ---
 name: gorrent-automation
 description: Automates downloading torrents using the local Gorrent daemon via the CLI wrapper.
-version: 1.6.0
+version: 1.7.0
 author: Mr Jacket
 license: GPL-3.0
 metadata:
@@ -48,7 +48,7 @@ Use the local `gorrent` CLI wrapper (`gorrent.sh` on macOS/Linux, `gorrent.bat` 
 ```
 
 **Available `--source` values** (restrict to one scraper):
-`yts`, `nyaa`, `piratebay`, `1337x`, `eztv`, `subsplease`, `fitgirl`, `torrentscsv`, `rutracker`
+`yts`, `nyaa`, `piratebay`, `1337x`, `eztv`, `subsplease`, `fitgirl`, `torrentscsv`, `rutracker`, `bittorrented`
 
 **Available `--category` values:** anything set in the user's `category_dirs` config (e.g. `movies`, `tvshows`, `anime`).
 
@@ -63,7 +63,7 @@ If the user asks you to automate something, DO NOT ask them to edit files. YOU m
 - `data_dir` (string): Directory for internal state files. Default `"./data"`.
 
 ### `scraper` block
-- `sources` (array): Active scrapers. Valid: `yts`, `nyaa`, `piratebay`, `1337x`, `eztv`, `subsplease`, `fitgirl`, `torrentscsv`, `rutracker`.
+- `sources` (array): Active scrapers. Valid: `yts`, `nyaa`, `piratebay`, `1337x`, `eztv`, `subsplease`, `fitgirl`, `torrentscsv`, `rutracker`, `bittorrented`.
 - `filters` (object): e.g. `{"language": "spanish"}`.
 - `dns` (string): DNS resolver. e.g. `"cloudflare"`, `"google"`, `"8.8.8.8"`.
 - `rutracker_cookie` (string): RuTracker `bb_session` cookie (only needed to activate that source).
@@ -80,6 +80,8 @@ If the user asks you to automate something, DO NOT ask them to edit files. YOU m
 - `max_seed_days` (int): GC drops torrent after seeding this many days.
 - `hardlink_dir` (string): **Optional.** Directory for zero-byte hardlinks for Plex/Jellyfin. Must be on the same physical disk as `download_dir`.
 - `post_script` (string): **Optional.** Path to bash script run on download completion. Env vars injected: `GORRENT_HASH`, `GORRENT_NAME`, `GORRENT_PATH`, `GORRENT_CATEGORY`.
+- `watch_dir` (string): **Optional.** Drop `.magnet` or `.txt` files (containing a magnet URI) here → Gorrent auto-downloads them within 5 seconds and moves them to `watch_dir/handled/`. Leave empty (default) to disable.
+- `delete_files_on_stop` (bool): **Optional, default `false`.** When `auto_cleanup` GC drops a torrent, also permanently deletes its files from disk. **Default is `false`** — files are always kept on disk for Plex/Jellyfin. Only set to `true` if the user explicitly asks for disk space rotation.
 
 ### `rss` block
 - `interval_min` (int): Polling interval in minutes.

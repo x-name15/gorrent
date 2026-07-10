@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/anacrolix/torrent"
@@ -47,6 +48,7 @@ func NewClient(cfg *config.TorrentConfig, dataDir string) (*Client, error) {
 		go client.startGC()
 	}
 	go client.startPostProcessor()
+	go client.startWatcher()
 
 	return client, nil
 }
@@ -184,6 +186,19 @@ func (c *Client) startGC() {
 
 			if drop {
 				t.Drop()
+				if c.cfg.DeleteFilesOnStop {
+					filePath := filepath.Join(c.cfg.DownloadDir, t.Name())
+					// Security: ensure the resolved path is actually under DownloadDir
+					// to prevent a malicious torrent name from deleting files elsewhere.
+					downloadDir := filepath.Clean(c.cfg.DownloadDir)
+					if !strings.HasPrefix(filepath.Clean(filePath)+string(filepath.Separator), downloadDir+string(filepath.Separator)) {
+						log.Printf("GC: BLOCKED deletion of suspicious path for %s", t.Name())
+					} else if err := os.RemoveAll(filePath); err != nil {
+						log.Printf("GC: failed to delete files for %s: %v", t.Name(), err)
+					} else {
+						log.Printf("GC: deleted files for %s", t.Name())
+					}
+				}
 			}
 		}
 	}

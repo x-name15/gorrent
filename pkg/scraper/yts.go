@@ -43,6 +43,10 @@ func NewYTS() search.Source {
 	}
 }
 
+func (s *yts) InjectClient(c *http.Client) {
+	s.client = c
+}
+
 func (s *yts) ID() string {
 	return "yts"
 }

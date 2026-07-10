@@ -11,13 +11,16 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
 var x1337Hosts = []string{"1337x.to", "1337x.st", "x1337x.ws", "1337xx.to"}
 
 type x1337 struct {
-	client *http.Client
+	client          *http.Client
+	lastWorkingHost string
+	mu              sync.RWMutex
 }
 
 func New1337x() search.Source {
@@ -46,7 +49,22 @@ func (s *x1337) Search(ctx context.Context, query string) ([]search.TorrentResul
 	var base string
 	var lastErr error
 
-	for _, host := range x1337Hosts {
+	// Build the host list: try the last working host first to avoid unnecessary cycling
+	s.mu.RLock()
+	cachedHost := s.lastWorkingHost
+	s.mu.RUnlock()
+
+	hosts := make([]string, 0, len(x1337Hosts)+1)
+	if cachedHost != "" {
+		hosts = append(hosts, cachedHost)
+	}
+	for _, h := range x1337Hosts {
+		if h != cachedHost {
+			hosts = append(hosts, h)
+		}
+	}
+
+	for _, host := range hosts {
 		candidate := fmt.Sprintf("https://%s", host)
 		u := fmt.Sprintf("%s%s", candidate, path)
 		req, err := http.NewRequestWithContext(ctx, "GET", u, nil)
@@ -58,6 +76,11 @@ func (s *x1337) Search(ctx context.Context, query string) ([]search.TorrentResul
 
 		resp, err := s.client.Do(req)
 		if err != nil {
+			s.mu.Lock()
+			if s.lastWorkingHost == host {
+				s.lastWorkingHost = ""
+			}
+			s.mu.Unlock()
 			lastErr = err
 			continue
 		}
@@ -67,9 +90,18 @@ func (s *x1337) Search(ctx context.Context, query string) ([]search.TorrentResul
 			html = string(b)
 			base = candidate
 			resp.Body.Close()
+			// Update the cached working host under a write lock
+			s.mu.Lock()
+			s.lastWorkingHost = host
+			s.mu.Unlock()
 			break
 		}
 		resp.Body.Close()
+		s.mu.Lock()
+		if s.lastWorkingHost == host {
+			s.lastWorkingHost = ""
+		}
+		s.mu.Unlock()
 		lastErr = fmt.Errorf("1337x returned %d", resp.StatusCode)
 	}
 
@@ -177,4 +209,8 @@ func fetch1337xMagnet(ctx context.Context, client *http.Client, base, path strin
 		return m[0]
 	}
 	return ""
+}
+
+func (s *x1337) InjectClient(c *http.Client) {
+	s.client = c
 }

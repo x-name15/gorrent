@@ -2,7 +2,7 @@ name: Gorrent Release Pipeline
 
 on:
   workflow_run:
-    workflows: ["Gorrent CI"]
+    workflows: ["Gorrent CI Release Gate"]
     types:
       - completed
     branches:

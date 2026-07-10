@@ -17,7 +17,7 @@ When the user asks you to search for torrents or download something, use your HT
 
 Returns a JSON array of results. Pick the one with the highest `score` or `seeders`.
 
-**Available `source` values:** `yts`, `nyaa`, `piratebay`, `1337x`, `eztv`, `subsplease`, `fitgirl`, `torrentscsv`, `rutracker`
+**Available `source` values:** `yts`, `nyaa`, `piratebay`, `1337x`, `eztv`, `subsplease`, `fitgirl`, `torrentscsv`, `rutracker`, `bittorrented`
 
 ### 2. Download Torrent
 `POST /api/download`
@@ -66,6 +66,11 @@ Drops the torrent from the engine. **Files remain on disk** — safe for Plex/Je
 ### 8. OpenAPI Spec (No Auth)
 `GET /api/docs` → returns the full OpenAPI YAML specification.
 
+### 9. File Streaming
+`GET /files/<relative/path>` — serves the entire `download_dir` over HTTP with `Range` header support.
+Requires authentication if `api_key` is set. Ideal for streaming video directly in a browser, VLC, Plex, or Jellyfin.
+Example: `GET /files/Movie.Name/video.mkv`
+
 ## Config Automation (Zero-Touch UX)
 If the user asks you to configure anything, directly modify `config.json`. Full schema:
 
@@ -75,7 +80,7 @@ If the user asks you to configure anything, directly modify `config.json`. Full 
 - `data_dir` (string): State files directory. Default `"./data"`.
 
 ### `scraper` block
-- `sources` (array): Active scrapers. Valid: `yts`, `nyaa`, `piratebay`, `1337x`, `eztv`, `subsplease`, `fitgirl`, `torrentscsv`, `rutracker`.
+- `sources` (array): Active scrapers. Valid: `yts`, `nyaa`, `piratebay`, `1337x`, `eztv`, `subsplease`, `fitgirl`, `torrentscsv`, `rutracker`, `bittorrented`.
 - `filters` (object): e.g. `{"language": "spanish", "quality": "1080p"}`.
 - `dns` (string): DNS-over-HTTPS resolver. e.g. `"cloudflare"`, `"google"`, or raw IP.
 - `rutracker_cookie` (string): RuTracker `bb_session` cookie.
@@ -92,6 +97,8 @@ If the user asks you to configure anything, directly modify `config.json`. Full 
 - `max_seed_days` (int): GC drops torrent after seeding this many days.
 - `hardlink_dir` (string): **Optional.** Directory for Plex/Jellyfin hardlinks. Must be on the same physical disk as `download_dir` or it will fail.
 - `post_script` (string): **Optional.** Bash script path run on completion. Env vars: `GORRENT_HASH`, `GORRENT_NAME`, `GORRENT_PATH`, `GORRENT_CATEGORY`.
+- `watch_dir` (string): **Optional.** Drop `.magnet` or `.txt` files (containing a magnet URI) here → Gorrent auto-downloads them within 5 seconds and moves them to `watch_dir/handled/`. Leave empty (default) to disable.
+- `delete_files_on_stop` (bool): **Optional, default `false`.** When `auto_cleanup` GC drops a torrent, also permanently deletes its files from disk. **Default is `false`** — Gorrent always keeps files on disk for Plex/Jellyfin. Only set to `true` if the user explicitly asks for disk space rotation.
 
 ### `rss` block
 - `interval_min` (int): Polling interval in minutes.

@@ -1,12 +1,23 @@
-.git
-.gitignore
-.dockerignore
-.github
-docs/
+# Ignore Markdown files
 skills-for-ai/
 *.md
-.torrent.bolt.db
+
+# Ignore GitHub files
+.github/
+
+# Ignore version control
+.git/
+.gitignore
+
+# Ignore Docker configuration files
+.dockerignore
+docker-compose.yml
+
+# Ignore local downloads and database files
 downloads/
+.torrent.bolt.db
+
+# Ignore local binaries
 bin/
 gorrent
 gorrent.exe
@@ -14,4 +25,7 @@ gorrent-daemon
 gorrent-daemon.exe
 gorrent.sh
 gorrent.bat
-docker-compose.yml
+
+# Ignore tests to keep the build context clean and optimize cache
+internal/tests/
+*_test.go

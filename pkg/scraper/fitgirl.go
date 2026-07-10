@@ -23,6 +23,10 @@ func NewFitGirl() search.Source {
 	}
 }
 
+func (s *fitgirl) InjectClient(c *http.Client) {
+	s.client = c
+}
+
 func (s *fitgirl) ID() string {
 	return "fitgirl"
 }

@@ -30,17 +30,19 @@ type ScraperConfig struct {
 
 // TorrentConfig holds settings for downloads.
 type TorrentConfig struct {
-	DownloadDir     string            `json:"download_dir"`
-	AutoExport      bool              `json:"auto_export_torrent"`
-	Trackers        []string          `json:"trackers"`
-	CategoryDirs    map[string]string `json:"category_dirs"`
-	MaxDownloadRate int               `json:"max_download_rate"` // in KB/s
-	MaxUploadRate   int               `json:"max_upload_rate"`   // in KB/s
-	AutoCleanup     bool              `json:"auto_cleanup"`      // Optional, false by default
-	SeedRatio       float64           `json:"seed_ratio"`        // Target ratio to stop seeding
-	MaxSeedDays     int               `json:"max_seed_days"`     // Days to seed before stopping
-	HardlinkDir     string            `json:"hardlink_dir"`      // Optional, e.g. "/media"
-	PostScript      string            `json:"post_script"`       // Optional, bash script to run on completion
+	DownloadDir       string            `json:"download_dir"`
+	AutoExport        bool              `json:"auto_export_torrent"`
+	Trackers          []string          `json:"trackers"`
+	CategoryDirs      map[string]string `json:"category_dirs"`
+	MaxDownloadRate   int               `json:"max_download_rate"`    // in KB/s
+	MaxUploadRate     int               `json:"max_upload_rate"`      // in KB/s
+	AutoCleanup       bool              `json:"auto_cleanup"`         // Optional, false by default
+	SeedRatio         float64           `json:"seed_ratio"`           // Target ratio to stop seeding
+	MaxSeedDays       int               `json:"max_seed_days"`        // Days to seed before stopping
+	HardlinkDir       string            `json:"hardlink_dir"`         // Optional, e.g. "/media"
+	PostScript        string            `json:"post_script"`          // Optional, bash script to run on completion
+	WatchDir          string            `json:"watch_dir"`            // Optional, empty = disabled
+	DeleteFilesOnStop bool              `json:"delete_files_on_stop"` // Optional, false = safe default
 }
 
 // RSSFeed holds the configuration for a single RSS feed.
@@ -79,7 +81,7 @@ func Default() *Config {
 			DataDir: "./data",
 		},
 		Scraper: ScraperConfig{
-			Sources: []string{"yts", "1337x", "nyaa", "piratebay"},
+			Sources: []string{"yts", "1337x", "nyaa", "piratebay", "bittorrented"},
 			Filters: map[string]string{
 				"language": "", // Default no language filter
 			},

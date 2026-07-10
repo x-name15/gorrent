@@ -1,4 +1,4 @@
-name: Gorrent CI
+name: Gorrent CI Release Gate
 
 on:
   push:
@@ -36,6 +36,9 @@ jobs:
             git diff
             exit 1
           fi
+      
+      - name: Run Tests (Race Detector + Shuffle)
+        run: go test -race -shuffle=on -timeout 30s ./...
 
       - name: Vet
         run: go vet ./...
