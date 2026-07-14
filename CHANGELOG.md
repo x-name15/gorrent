@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.6] - 2026-07-14 — Dependabot Integration
+
+### CI/CD
+- **Dependabot Integration**: Added `.github/dependabot.yml` to automatically track and update Go modules (`go.mod`) and GitHub Actions workflows on a weekly basis, ensuring Gorrent always runs on the latest security patches.
+- **Auto-Merge GitHub Action**: Added a custom workflow (`dependabot-auto-merge.yml`) that automatically merges Dependabot Pull Requests for `patch` and `minor` version updates, provided they pass all CI/CD test gates. This keeps maintenance completely hands-free while blocking potentially breaking `major` updates.
+
+---
 ## [1.6.5] - 2026-07-10 — Logs for everyone
 
 ### Added
