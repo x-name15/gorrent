@@ -109,3 +109,8 @@ If the user asks you to configure anything, directly modify `config.yaml`. Full 
   - `regex` (array of strings): Case-insensitive title patterns. Empty = download all.
 
 Always return status/results nicely formatted to the user.
+
+## Resilience & State
+Gorrent features a **Self-Healing Boot** architecture.
+- **State Persistence**: Active torrents are automatically saved to state.json inside the download_dir. If Gorrent restarts, it silently reloads all torrents in the background, pausing or resuming them instantly. Do not attempt to manually re-add torrents upon boot.
+- **Crash Logging**: Fatal engine panics are trapped and saved to crash-logs/crash.log in the working directory without terminating the daemon.

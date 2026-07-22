@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.6] - 2026-07-22 — Self-Healing Update
+
+### Added
+- **State Persistence (Self-Healing Boot)**: Gorrent now maintains a `state.json` file in the `DownloadDir`. If the daemon crashes or is rebooted, it automatically re-adds all previously active torrents in the background upon startup, resuming them exactly where they left off without blocking the API.
+- **Crash Logger**: Added a robust panic recovery middleware to the API and engine routines. Fatal errors (panics) are now safely caught, preventing the daemon from crashing, and the stack traces are logged to an isolated `crash-logs/crash.log` file for debugging.
+- **AI Skills Update**: Documented the new Self-Healing and Crash Logging architecture in all AI `SKILL.md` files (Claude, Hermes, OpenClaw) so agents are aware of the daemon's automatic resilience.
+
+---
 ## [1.6.6] - 2026-07-14 — Dependabot Integration
 
 ### CI/CD
