@@ -119,6 +119,8 @@ func main() {
 
 func (s *Server) authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		defer logger.RecoverAndLog("HTTP Handler: " + r.URL.Path)
+
 		if s.cfg.Daemon.APIKey != "" {
 			key := r.Header.Get("X-API-Key")
 			if key != s.cfg.Daemon.APIKey && r.URL.Query().Get("apikey") != s.cfg.Daemon.APIKey {

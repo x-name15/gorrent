@@ -93,3 +93,8 @@ If the user asks you to automate something, DO NOT ask them to edit files. YOU m
 - Never attempt to download `.torrent` files or parse HTML tracker pages yourself.
 - Let the Gorrent daemon handle all scoring, peer connection, and dead-torrent protection.
 - Seeding is good — never enable `auto_cleanup` unless the user explicitly asks.
+
+## Resilience & State
+Gorrent features a **Self-Healing Boot** architecture.
+- **State Persistence**: Active torrents are automatically saved to state.json inside the download_dir. If Gorrent restarts, it silently reloads all torrents in the background, pausing or resuming them instantly. Do not attempt to manually re-add torrents upon boot.
+- **Crash Logging**: Fatal engine panics are trapped and saved to crash-logs/crash.log in the working directory without terminating the daemon.

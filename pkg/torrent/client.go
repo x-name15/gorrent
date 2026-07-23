@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/anacrolix/torrent"
@@ -16,9 +17,11 @@ import (
 )
 
 type Client struct {
-	tc      *torrent.Client
-	cfg     *config.TorrentConfig
-	dataDir string
+	tc        *torrent.Client
+	cfg       *config.TorrentConfig
+	dataDir   string
+	stateMu   sync.RWMutex
+	stateData map[string]persistedTorrent
 }
 
 // NewClient initializes the anacrolix/torrent client.
@@ -40,10 +43,13 @@ func NewClient(cfg *config.TorrentConfig, dataDir string) (*Client, error) {
 	}
 
 	client := &Client{
-		tc:      tc,
-		cfg:     cfg,
-		dataDir: dataDir,
+		tc:        tc,
+		cfg:       cfg,
+		dataDir:   dataDir,
+		stateData: make(map[string]persistedTorrent),
 	}
+
+	client.loadState()
 
 	if cfg.AutoCleanup {
 		go client.startGC()
@@ -102,6 +108,15 @@ func (c *Client) AddMagnet(magnet string, category string) (*torrent.Torrent, er
 	// Download all files
 	t.DownloadAll()
 
+	c.stateMu.Lock()
+	c.stateData[t.InfoHash().HexString()] = persistedTorrent{
+		InfoHash: t.InfoHash().HexString(),
+		Magnet:   magnet,
+		Category: category,
+	}
+	c.saveState()
+	c.stateMu.Unlock()
+
 	return t, nil
 }
 
@@ -110,6 +125,12 @@ func (c *Client) StopTorrent(hash string) error {
 	for _, t := range c.tc.Torrents() {
 		if t.InfoHash().HexString() == hash {
 			t.Drop()
+
+			c.stateMu.Lock()
+			delete(c.stateData, hash)
+			c.saveState()
+			c.stateMu.Unlock()
+
 			return nil
 		}
 	}
@@ -191,6 +212,12 @@ func (c *Client) startGC() {
 
 			if drop {
 				t.Drop()
+
+				c.stateMu.Lock()
+				delete(c.stateData, t.InfoHash().HexString())
+				c.saveState()
+				c.stateMu.Unlock()
+
 				if c.cfg.DeleteFilesOnStop {
 					filePath := filepath.Join(c.cfg.DownloadDir, t.Name())
 					// Security: ensure the resolved path is actually under DownloadDir
