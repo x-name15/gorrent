@@ -5,7 +5,7 @@ go 1.25.9
 require (
 	github.com/anacrolix/torrent v1.61.0
 	github.com/gorilla/websocket v1.5.0
-	golang.org/x/text v0.40.0
+	golang.org/x/text v0.41.0
 	golang.org/x/time v0.14.0
 	gopkg.in/yaml.v3 v3.0.1
 )
