@@ -270,4 +270,3 @@ func handleSeed(args []string) {
 	}
 	fmt.Printf("Magnet:      %v\n", res["magnet"])
 }
-
