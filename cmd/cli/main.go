@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 
 	"github.com/x-name15/gorrent/pkg/config"
 	"github.com/x-name15/gorrent/pkg/search"
@@ -48,6 +49,8 @@ func main() {
 		handleSearch(os.Args[2:])
 	case "download":
 		handleDownload(os.Args[2:])
+	case "seed":
+		handleSeed(os.Args[2:])
 	case "status":
 		handleStatus()
 	case "stop":
@@ -66,6 +69,7 @@ Commands:
   search [--source <name>] <query>          Search for torrents
   download [--source <name>] --auto <query> Auto-search and download the best match
   download <magnet>                         Download a specific magnet link
+  seed [--category <name>] <path>           Turn a local folder/file into a torrent and seed it
   status                  Show active downloads
   stop <hash>             Stop and delete an active download`)
 }
@@ -214,3 +218,56 @@ func handleStop(args []string) {
 
 	fmt.Printf("Successfully stopped torrent: %s\n", hash)
 }
+
+func handleSeed(args []string) {
+	seedCmd := flag.NewFlagSet("seed", flag.ExitOnError)
+	categoryFlag := seedCmd.String("category", "", "Optional category for the seeded torrent")
+	seedCmd.Parse(args)
+
+	if seedCmd.NArg() < 1 {
+		fmt.Println("Usage: gorrent seed [--category <name>] <path>")
+		os.Exit(1)
+	}
+
+	targetPath := seedCmd.Arg(0)
+	absPath, err := filepath.Abs(targetPath)
+	if err != nil {
+		log.Fatalf("Invalid path: %v", err)
+	}
+
+	payload := map[string]string{
+		"path":     absPath,
+		"category": *categoryFlag,
+	}
+
+	b, _ := json.Marshal(payload)
+	req, err := http.NewRequest(http.MethodPost, DaemonURL+"/api/seed", bytes.NewBuffer(b))
+	if err != nil {
+		log.Fatalf("Failed to create request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := doRequest(req)
+	if err != nil {
+		log.Fatalf("Failed to connect to daemon: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		log.Fatalf("Daemon error (%d): %s", resp.StatusCode, string(body))
+	}
+
+	var res map[string]interface{}
+	json.NewDecoder(resp.Body).Decode(&res)
+
+	fmt.Println("Seeding started successfully!")
+	fmt.Printf("Name:        %v\n", res["name"])
+	fmt.Printf("InfoHash:    %v\n", res["info_hash"])
+	fmt.Printf("Total Bytes: %v\n", res["total_bytes"])
+	if tf, ok := res["torrent_file"].(string); ok && tf != "" {
+		fmt.Printf(".torrent:    %s\n", tf)
+	}
+	fmt.Printf("Magnet:      %v\n", res["magnet"])
+}
+

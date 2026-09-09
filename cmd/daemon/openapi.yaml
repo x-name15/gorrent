@@ -2,7 +2,7 @@ openapi: 3.0.0
 info:
   title: Gorrent API
   description: Headless torrent search and download daemon for homelab automation.
-  version: 1.6.3
+  version: 1.8.0
 servers:
   - url: http://localhost:7800
     description: Gorrent Daemon
@@ -89,6 +89,54 @@ paths:
           description: Unauthorized
         '404':
           description: No results found for auto-download query
+
+  /api/seed:
+    post:
+      summary: Turn a local path into a torrent and seed it.
+      description: >
+        Takes an existing file or directory path on the local filesystem,
+        generates the .torrent metainfo, saves it to download_dir, and begins
+        seeding it directly to peers without re-downloading.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - path
+              properties:
+                path:
+                  type: string
+                  description: Absolute path to the local file or directory to seed
+                category:
+                  type: string
+                  description: Optional category
+      responses:
+        '200':
+          description: Seeding successfully started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: seeding
+                  info_hash:
+                    type: string
+                  name:
+                    type: string
+                  total_bytes:
+                    type: integer
+                  magnet:
+                    type: string
+                  torrent_file:
+                    type: string
+        '400':
+          description: Invalid path or missing parameter
+        '401':
+          description: Unauthorized
 
   /api/status:
     get:

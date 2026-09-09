@@ -47,6 +47,11 @@ Use the local `gorrent` CLI wrapper (`gorrent.sh` on macOS/Linux, `gorrent.bat` 
 ./gorrent.sh stop <hash>
 ```
 
+**Seed a local folder or file:**
+```bash
+./gorrent.sh seed [--category <name>] <path>
+```
+
 **Available `--source` values** (restrict to one scraper):
 `yts`, `nyaa`, `piratebay`, `1337x`, `eztv`, `subsplease`, `fitgirl`, `torrentscsv`, `rutracker`, `bittorrented`
 

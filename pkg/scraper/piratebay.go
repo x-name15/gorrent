@@ -45,13 +45,11 @@ func (s *piratebay) Name() string {
 	return "The Pirate Bay"
 }
 
-func (s *piratebay) Search(ctx context.Context, query string) ([]search.TorrentResult, error) {
-	q := strings.TrimSpace(query)
-	if q == "" {
-		return nil, nil
-	}
+func isNoResultsSentinel(items []pbItem) bool {
+	return len(items) == 1 && (items[0].Id == "0" || items[0].Name == "No results returned")
+}
 
-	u := fmt.Sprintf("https://apibay.org/q.php?q=%s", url.QueryEscape(q))
+func (s *piratebay) fetchItems(ctx context.Context, u string) ([]pbItem, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", u, nil)
 	if err != nil {
 		return nil, err
@@ -72,6 +70,30 @@ func (s *piratebay) Search(ctx context.Context, query string) ([]search.TorrentR
 	if err := json.NewDecoder(resp.Body).Decode(&items); err != nil {
 		return nil, err
 	}
+	return items, nil
+}
+
+func (s *piratebay) Search(ctx context.Context, query string) ([]search.TorrentResult, error) {
+	q := strings.TrimSpace(query)
+	if q == "" {
+		return nil, nil
+	}
+
+	u := fmt.Sprintf("https://apibay.org/q.php?q=%s", url.QueryEscape(q))
+	items, err := s.fetchItems(ctx, u)
+	if err != nil {
+		return nil, err
+	}
+
+	// If apibay returns its cached "no results" sentinel, retry with explicit cat=0
+	// to re-roll against an alternate unpoisoned cache key.
+	if isNoResultsSentinel(items) {
+		retryURL := fmt.Sprintf("https://apibay.org/q.php?q=%s&cat=0", url.QueryEscape(q))
+		retryItems, retryErr := s.fetchItems(ctx, retryURL)
+		if retryErr == nil && !isNoResultsSentinel(retryItems) {
+			items = retryItems
+		}
+	}
 
 	var out []search.TorrentResult
 	for _, item := range items {
@@ -79,7 +101,7 @@ func (s *piratebay) Search(ctx context.Context, query string) ([]search.TorrentR
 			continue
 		}
 
-		infoHash := strings.ToLower(item.InfoHash)
+		infoHash := search.NormalizeInfoHash(item.InfoHash)
 		if infoHash == "" || item.Name == "" {
 			continue
 		}

@@ -93,6 +93,7 @@ func main() {
 
 	http.HandleFunc("/api/search", srv.authMiddleware(srv.handleSearch))
 	http.HandleFunc("/api/download", srv.authMiddleware(srv.handleDownload))
+	http.HandleFunc("/api/seed", srv.authMiddleware(srv.handleSeed))
 	http.HandleFunc("/api/status", srv.authMiddleware(srv.handleStatus))
 	http.HandleFunc("/api/torrent", srv.authMiddleware(srv.handleStop))
 	http.HandleFunc("/api/ws", srv.authMiddleware(srv.handleWS))
@@ -256,6 +257,47 @@ func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "started", "magnet": magnetToDownload})
+}
+
+func (s *Server) handleSeed(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Path     string `json:"path"`
+		Category string `json:"category"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON body", http.StatusBadRequest)
+		return
+	}
+
+	req.Path = strings.TrimSpace(req.Path)
+	if req.Path == "" {
+		http.Error(w, "Missing path parameter", http.StatusBadRequest)
+		return
+	}
+
+	logger.Debugf("API POST /api/seed - Remote: %s, Path: '%s', Category: '%s'", r.RemoteAddr, req.Path, req.Category)
+
+	res, err := s.torrentCli.SeedPath(req.Path, req.Category)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to seed path: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":       "seeding",
+		"info_hash":    res.InfoHash,
+		"name":         res.Name,
+		"total_bytes":  res.TotalBytes,
+		"magnet":       res.Magnet,
+		"torrent_file": res.TorrentFile,
+	})
 }
 
 func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {

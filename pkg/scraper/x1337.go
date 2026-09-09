@@ -166,11 +166,8 @@ func parse1337xRows(ctx context.Context, client *http.Client, html string, base 
 			continue
 		}
 
-		// Extract infohash from magnet
-		infoHash := ""
-		if m := regexp.MustCompile(`urn:btih:([a-zA-Z0-9]+)`).FindStringSubmatch(magnet); len(m) > 1 {
-			infoHash = strings.ToLower(m[1])
-		}
+		// Extract and normalize infohash from magnet (handles Base32 and Hex)
+		infoHash := search.ExtractInfoHash(magnet)
 
 		results = append(results, search.TorrentResult{
 			InfoHash:  infoHash,
