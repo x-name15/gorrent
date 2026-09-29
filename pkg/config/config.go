@@ -45,6 +45,8 @@ type TorrentConfig struct {
 	PostScript        string            `json:"post_script" yaml:"post_script"`                   // Optional, bash script to run on completion
 	WatchDir          string            `json:"watch_dir" yaml:"watch_dir"`                       // Optional, empty = disabled
 	DeleteFilesOnStop bool              `json:"delete_files_on_stop" yaml:"delete_files_on_stop"` // Optional, false = safe default
+	NoPlaylist        bool              `json:"no_playlist" yaml:"no_playlist"`                   // Optional, false = auto-generate playlist.m3u
+	DisableUTP        bool              `json:"disable_utp" yaml:"disable_utp"`                   // Optional, false = keep uTP enabled
 }
 
 // RSSFeed holds the configuration for a single RSS feed.

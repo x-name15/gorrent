@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/anacrolix/torrent"
 	"github.com/anacrolix/torrent/bencode"
@@ -128,6 +129,18 @@ func BuildSeedMetaInfo(localPath string, extraTrackers []string, downloadDir str
 // saves the .torrent file to download_dir, begins seeding it to peers,
 // and returns the seed result including magnet URI.
 func (c *Client) SeedPath(localPath string, category string) (*SeedResult, error) {
+	return c.SeedPathWithSeedTime(localPath, category, "")
+}
+
+// SeedPathWithSeedTime turns an existing local file or directory into a torrent with an optional custom seed limit.
+func (c *Client) SeedPathWithSeedTime(localPath string, category string, seedTime string) (*SeedResult, error) {
+	seedTime = strings.TrimSpace(seedTime)
+	if seedTime != "" {
+		if _, _, err := ParseSeedDuration(seedTime); err != nil {
+			return nil, fmt.Errorf("invalid seed_time: %w", err)
+		}
+	}
+
 	absPath, err := filepath.Abs(localPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve absolute path: %w", err)
@@ -151,9 +164,11 @@ func (c *Client) SeedPath(localPath string, category string) (*SeedResult, error
 	infoHashHex := mi.HashInfoBytes().HexString()
 	c.stateMu.Lock()
 	c.stateData[infoHashHex] = persistedTorrent{
-		InfoHash: infoHashHex,
-		Magnet:   magnetURI,
-		Category: category,
+		InfoHash:    infoHashHex,
+		Magnet:      magnetURI,
+		Category:    category,
+		SeedTime:    seedTime,
+		CompletedAt: time.Now().Unix(),
 	}
 	c.saveState()
 	c.stateMu.Unlock()

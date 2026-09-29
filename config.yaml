@@ -60,6 +60,14 @@ torrent:
   
   # Optional bash script to run on download completion
   post_script: ""
+
+  # Skip automatic generation of playlist.m3u for multi-file downloads
+  # (Can also be set via GORRENT_NO_PLAYLIST=1 env var)
+  no_playlist: false
+
+  # Disable uTP socket allocations in restricted networks
+  # (Can also be set via GORRENT_NO_UTP=1 env var)
+  disable_utp: false
   
   # Custom trackers appended to every magnet link to boost DHT discovery
   trackers:

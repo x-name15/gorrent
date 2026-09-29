@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-09-29 — The Playlist & Per-Torrent Seeding Update
+
+### Added
+- **Automatic Playlist Generation (`playlist.m3u`)**: Finished multi-file torrent downloads automatically generate a `playlist.m3u` file in every folder holding two or more audio or video files, including nested directories.
+  - Files are ordered using natural alphanumeric sorting (`NaturalLess`, e.g., `track1, track2, track10`).
+  - Playlists use standard `#EXTM3U` format and relative local paths (`./track.ext`) preventing player comment issues.
+  - Zero overwrite: existing playlists (including user-created or torrent-supplied playlists) are never overwritten (`os.O_CREATE|os.O_EXCL`).
+  - Path traversal and escape protection: directory traversal and injection patterns are safely rejected.
+  - Can be disabled globally with `no_playlist: true` in config or via the `GORRENT_NO_PLAYLIST=1` environment variable.
+- **Per-Torrent Seed Limits (`seed_time`)**: Individual torrents can now carry their own seed duration, overriding global daemon cleanup limits (`max_seed_days`).
+  - Supported formats: days (`"30d"`), hours (`"2h"`), minutes (`"90m"`), seconds (`"3600"`), or `"0"` to seed indefinitely without time-based removal.
+  - Supported at creation time via `POST /api/download` (`seed_time` field), `POST /api/seed` (`seed_time` field), and CLI flags (`gorrent download --seed-time 2h`, `gorrent seed --seed-time 30d <path>`).
+  - Supported at runtime via `POST /api/torrent/seed-time` and `POST /api/control` (action: `"seed-time"`), and CLI command `gorrent seed-time <hash> <duration>`.
+  - Torrent status (`GET /api/status` & `gorrent status`) reports `seed_time`, `completed_at`, `seed_until`, and human-formatted `seed_remaining_sec`.
+  - State persisted across daemon reboots in `state.json`.
+- **uTP Opt-Out (`disable_utp` / `GORRENT_NO_UTP`)**: Added the option to disable uTP socket allocations in restricted networks via `disable_utp: true` in `config.yaml` or `GORRENT_NO_UTP=1` environment variable.
+
+---
 ## [1.8.0] - 2026-09-09 — The Torlink Parity & Seeding Update
 
 ### Added

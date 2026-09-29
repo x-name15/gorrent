@@ -1,6 +1,6 @@
 # ⛵ Gorrent
 
-[![Release](https://img.shields.io/badge/Release-v1.8.0-green?style=flat-square)](https://github.com/x-name15/gorrent/releases)
+[![Release](https://img.shields.io/badge/Release-v1.9.0-green?style=flat-square)](https://github.com/x-name15/gorrent/releases)
 [![Go Version](https://img.shields.io/badge/Go-1.25-00ADD8?style=flat-square&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/License-GPLv3-blue?style=flat-square)](LICENSE)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/x-name15/gorrent/entry.yaml?style=flat-square&logo=githubactions&logoColor=white)](https://github.com/x-name15/gorrent/actions)
@@ -16,19 +16,22 @@ Rather than trying to change their core interactive philosophy, **Gorrent** take
 
 ## Features
 
-| Feature             | Supported |
-| ------------------- | --------- |
-| REST API            | ✅         |
-| Docker              | ✅         |
-| DNS-over-HTTPS (DoH)| ✅         |
-| Concurrent scraping | ✅         |
-| Auto scoring        | ✅         |
-| RuTracker           | ✅         |
-| Optional CLI        | ✅         |
-| OpenClaw            | ✅         |
-| Claude Skill        | ✅         |
-| Hermes Skill        | ✅         |
-| Auto .torrent backup| ✅         |
+| Feature                 | Supported |
+| ----------------------- | --------- |
+| REST API                | ✅         |
+| Docker                  | ✅         |
+| DNS-over-HTTPS (DoH)    | ✅         |
+| Concurrent scraping     | ✅         |
+| Auto scoring            | ✅         |
+| RuTracker               | ✅         |
+| Optional CLI            | ✅         |
+| OpenClaw                | ✅         |
+| Claude Skill            | ✅         |
+| Hermes Skill            | ✅         |
+| Auto .torrent backup    | ✅         |
+| Auto M3U Playlists      | ✅         |
+| Per-Torrent Seed Limits | ✅         |
+| uTP Opt-Out             | ✅         |
 
 ## Fault-Tolerant Architecture
 
@@ -82,7 +85,8 @@ POST /api/download
 Content-Type: application/json
 
 {
-    "auto": "Oppenheimer"
+    "auto": "Oppenheimer",
+    "seed_time": "2h"
 }
 ```
 
@@ -94,7 +98,20 @@ Content-Type: application/json
 
 {
     "path": "/downloads/my-album",
-    "category": "music"
+    "category": "music",
+    "seed_time": "30d"
+}
+```
+
+**Update Torrent Seed Limit:**
+Override or update a torrent's seed duration limit dynamically (pass `"0"` to seed indefinitely):
+```http
+POST /api/torrent/seed-time
+Content-Type: application/json
+
+{
+    "hash": "4a6c8e31289cf...",
+    "seed_time": "7d"
 }
 ```
 
@@ -177,6 +194,8 @@ torrent:
   post_script: "/opt/scripts/unrar.sh"
   watch_dir: "/downloads/watch"
   delete_files_on_stop: false
+  no_playlist: false
+  disable_utp: false
   trackers:
     - "udp://tracker.opentrackr.org:1337/announce"
   category_dirs:
@@ -203,6 +222,13 @@ docker compose up -d
 
 ## Advanced Usage
 
+### Automatic Playlist Generation (`playlist.m3u`)
+When multi-file downloads finish, Gorrent automatically places a `playlist.m3u` file into every directory holding two or more media files (including nested folders), sorted naturally (`track1, track2, track10`). It uses standard `#EXTM3U` formatting with relative paths (`./file.mp4`), never overwrites existing playlists, and protects against path traversal.
+- Can be disabled in config via `no_playlist: true` or with the environment variable `GORRENT_NO_PLAYLIST=1`.
+
+### Per-Torrent Seed Limits (`seed_time`)
+Set individual seed limits (`"30d"`, `"2h"`, `"90m"`, or `"0"` to never stop seeding) per torrent via the API (`seed_time` field on `/api/download` and `/api/seed`), runtime control (`POST /api/torrent/seed-time`), or CLI flags (`--seed-time`). Status reports the remaining seed duration.
+
 ### Post-Processing Scripts (Unzipping / Moving)
 If you download Repacks (like FitGirl) or Scene releases, you'll often end up with `.rar` or `.zip` files.
 Gorrent can automatically run a bash script when a download reaches 100%. Set the `post_script` field in `config.yaml` to the path of your script (e.g. `"/opt/scripts/unrar.sh"`).
@@ -222,9 +248,10 @@ If you don't provide a `config.yaml`, Gorrent will load sane defaults, but mappi
 
 If you do want to run it manually, it ships with CLI Commands:
 - **Search**: `./gorrent.sh search <query>`
-- **Download by magnet**: `./gorrent.sh download "magnet:?xt=urn:btih:..."`
-- **Auto-download best result**: `./gorrent.sh download --auto <query>`
-- **Seed local folder/file**: `./gorrent.sh seed [--category <name>] <path>`
+- **Download by magnet**: `./gorrent.sh download [--seed-time <dur>] "magnet:?xt=urn:btih:..."`
+- **Auto-download best result**: `./gorrent.sh download [--seed-time <dur>] --auto <query>`
+- **Seed local folder/file**: `./gorrent.sh seed [--category <name>] [--seed-time <dur>] <path>`
+- **Update seed limit**: `./gorrent.sh seed-time <hash> <duration>` (use `0` for infinite)
 - **Zero-config AI callback**: `./gorrent.sh download --auto <query> --callback <WEBHOOK_URL>` (Daemon will HTTP POST to this URL when download finishes)
 - **Check Status**: `./gorrent.sh status`
 - **Stop and remove a download**: `./gorrent.sh stop <hash>`
@@ -239,4 +266,4 @@ GOrrent is licensed under the GPL v3. See [`LICENSE`](./LICENSE) for details.
 
 ## Credits
 
-**Author:** Mr Jacket / Felix Manrique
+**Author:** Mr Jacket / Felix Manrique /x-name15
