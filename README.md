@@ -1,6 +1,6 @@
 # ⛵ Gorrent
 
-[![Release](https://img.shields.io/badge/Release-v1.6.6-green?style=flat-square)](https://github.com/x-name15/gorrent/releases)
+[![Release](https://img.shields.io/badge/Release-v1.8.0-green?style=flat-square)](https://github.com/x-name15/gorrent/releases)
 [![Go Version](https://img.shields.io/badge/Go-1.25-00ADD8?style=flat-square&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/License-GPLv3-blue?style=flat-square)](LICENSE)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/x-name15/gorrent/entry.yaml?style=flat-square&logo=githubactions&logoColor=white)](https://github.com/x-name15/gorrent/actions)
@@ -86,11 +86,15 @@ Content-Type: application/json
 }
 ```
 
-**Response:**
-```json
+**Seed Local Folder/File Request:**
+You can seed an existing directory or file directly to peers without downloading it:
+```http
+POST /api/seed
+Content-Type: application/json
+
 {
-    "status": "started",
-    "magnet": "magnet:?xt=urn:btih:..."
+    "path": "/downloads/my-album",
+    "category": "music"
 }
 ```
 
@@ -220,6 +224,7 @@ If you do want to run it manually, it ships with CLI Commands:
 - **Search**: `./gorrent.sh search <query>`
 - **Download by magnet**: `./gorrent.sh download "magnet:?xt=urn:btih:..."`
 - **Auto-download best result**: `./gorrent.sh download --auto <query>`
+- **Seed local folder/file**: `./gorrent.sh seed [--category <name>] <path>`
 - **Zero-config AI callback**: `./gorrent.sh download --auto <query> --callback <WEBHOOK_URL>` (Daemon will HTTP POST to this URL when download finishes)
 - **Check Status**: `./gorrent.sh status`
 - **Stop and remove a download**: `./gorrent.sh stop <hash>`

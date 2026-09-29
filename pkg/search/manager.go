@@ -144,6 +144,59 @@ func (m *Manager) ScoreAndFilter(results []TorrentResult) []TorrentResult {
 		return filtered[i].Score > filtered[j].Score
 	})
 
-	logger.Debugf("ScoreAndFilter: Returning %d filtered results", len(filtered))
-	return filtered
+	deduped := m.DedupeAndMerge(filtered)
+	logger.Debugf("ScoreAndFilter: Returning %d deduplicated results (from %d)", len(deduped), len(filtered))
+	return deduped
+}
+
+// DedupeAndMerge folds rows for the same infohash across multiple sources into one.
+// The winning row (higher score, or higher seeders on tie) keeps its identity,
+// while missing metadata (such as Added timestamp) and unique trackers (&tr=...)
+// from losing rows are merged into the winning magnet URI.
+func (m *Manager) DedupeAndMerge(results []TorrentResult) []TorrentResult {
+	if len(results) <= 1 {
+		return results
+	}
+
+	byHash := make(map[string]int) // hash -> index in deduplicated list
+	var deduped []TorrentResult
+
+	for _, r := range results {
+		h := NormalizeInfoHash(r.InfoHash)
+		if h == "" {
+			h = ExtractInfoHash(r.Magnet)
+		}
+		if h == "" {
+			deduped = append(deduped, r)
+			continue
+		}
+		r.InfoHash = h
+
+		if idx, exists := byHash[h]; exists {
+			existing := deduped[idx]
+			win, lose := existing, r
+			if r.Score > existing.Score || (r.Score == existing.Score && r.Seeders > existing.Seeders) {
+				win, lose = r, existing
+			}
+
+			if win.Added == 0 && lose.Added > 0 {
+				win.Added = lose.Added
+			}
+
+			win.Magnet = MergeMagnetTrackers(win.Magnet, lose.Magnet)
+			deduped[idx] = win
+		} else {
+			byHash[h] = len(deduped)
+			deduped = append(deduped, r)
+		}
+	}
+
+	sort.Slice(deduped, func(i, j int) bool {
+		if deduped[i].Score == deduped[j].Score {
+			return deduped[i].Seeders > deduped[j].Seeders
+		}
+		return deduped[i].Score > deduped[j].Score
+	})
+
+	return deduped
 }

@@ -5,7 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.6.6] - 2026-07-22 — Self-Healing Update
+## [1.8.0] - 2026-09-09 — The Torlink Parity & Seeding Update
+
+### Added
+- **Local Path Seeding (`POST /api/seed` & `gorrent seed <path>`)**: Seed any existing local directory or file directly to peers without re-downloading it. Generates metainfo, outputs a magnet URI, writes the `.torrent` file to `download_dir`, and preserves seeding state across reboots.
+- **Cross-Source Deduplication & Tracker Merging**: Search results matching the same infohash across different scrapers (e.g. YTS, 1337x, TPB) are merged into a single best result. The winning row keeps its highest score and seeder count, while all unique announce trackers (`&tr=...`) from losing rows are merged into the winner's magnet URI for enhanced peer discovery.
+- **Search Cache Ceiling & LRU Eviction**: Implemented a bounded cache (`DefaultMaxCacheEntries = 100`) with thread-safe LRU eviction in `pkg/search/cache.go`, preventing unbounded memory consumption in long-running daemons.
+
+### Fixed
+- **1337x Base32 InfoHash Normalization**: Correctly detects and converts 32-character Base32 infohashes returned by 1337x detail pages into standard 40-character lowercase hexadecimal infohashes, ensuring cross-source deduplication and API compatibility.
+- **EZTV Search Revival via Recent Feed Indexing**: Overcame EZTV's text-search limitation by indexing recent releases to discover show IMDb IDs, then querying EZTV's catalog API with matching IMDb IDs. EZTV now returns search results for TV shows instead of silently returning empty lists.
+- **The Pirate Bay (apibay) Sentinel Retry**: Detects apibay's cached "no results returned" placeholder sentinel (`id == "0"`) and automatically retries with `&cat=0` to bypass poisoned CDN cache keys.
+
+---
+## [1.7.1] - 2026-07-22 — Self-Healing Update
 
 ### Added
 - **State Persistence (Self-Healing Boot)**: Gorrent now maintains a `state.json` file in the `DownloadDir`. If the daemon crashes or is rebooted, it automatically re-adds all previously active torrents in the background upon startup, resuming them exactly where they left off without blocking the API.

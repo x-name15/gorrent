@@ -34,6 +34,11 @@ These are thin wrappers around `docker exec -it gorrent /gorrent "$@"`.
 ./gorrent.sh stop <hash>
 ```
 
+**Seed Local Folder/File:**
+```bash
+./gorrent.sh seed [--category <name>] <path>
+```
+
 **Available `--source` values** (restrict search to one scraper):
 `yts`, `nyaa`, `piratebay`, `1337x`, `eztv`, `subsplease`, `fitgirl`, `torrentscsv`, `rutracker`, `bittorrented`
 
@@ -47,6 +52,7 @@ Daemon listens on `http://localhost:7800`. If `api_key` is set in config, includ
 
 - **Search**: `GET /api/search?q=<query>[&source=<name>]`
 - **Download**: `POST /api/download` — body: `{"magnet":"..."}` or `{"auto":"...","category":"...","source":"...","callback":"..."}`
+- **Seed**: `POST /api/seed` — body: `{"path":"/abs/path","category":"..."}` — seeds existing local folder/file directly without downloading
 - **Status**: `GET /api/status` — returns `[{hash, name, downloaded, length, peers}]`
 - **Stop**: `DELETE /api/torrent?hash=<hash>`
 - **WebSocket**: `ws://localhost:7800/api/ws` — streams status every 1s

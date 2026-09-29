@@ -71,6 +71,16 @@ Drops the torrent from the engine. **Files remain on disk** — safe for Plex/Je
 Requires authentication if `api_key` is set. Ideal for streaming video directly in a browser, VLC, Plex, or Jellyfin.
 Example: `GET /files/Movie.Name/video.mkv`
 
+### 10. Seed Local Path
+`POST /api/seed`
+```json
+{
+  "path": "/absolute/path/to/folder/or/file",
+  "category": "movies | tvshows | music | ..."
+}
+```
+Turns an existing local folder or file into an active torrent and starts seeding it immediately without re-downloading. Saves the `.torrent` file in `download_dir` and returns its magnet URI.
+
 ## Config Automation (Zero-Touch UX)
 If the user asks you to configure anything, directly modify `config.yaml`. Full schema:
 
