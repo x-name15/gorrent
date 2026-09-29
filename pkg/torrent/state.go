@@ -20,7 +20,7 @@ type PersistedTorrent struct {
 	InfoHash    string `json:"info_hash"`
 	Magnet      string `json:"magnet"`
 	Category    string `json:"category,omitempty"`
-	SeedTime    string `json:"seed_time,omitempty"`     // e.g. "2h", "30d", "0" (0 = infinite)
+	SeedTime    string `json:"seed_time,omitempty"`    // e.g. "2h", "30d", "0" (0 = infinite)
 	CompletedAt int64  `json:"completed_at,omitempty"` // Unix epoch seconds when download completed
 }
 
