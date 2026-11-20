@@ -2,7 +2,7 @@ openapi: 3.0.0
 info:
   title: Gorrent API
   description: Headless torrent search and download daemon for homelab automation.
-  version: 1.8.0
+  version: 1.9.0
 servers:
   - url: http://localhost:7800
     description: Gorrent Daemon
@@ -24,8 +24,9 @@ paths:
           in: query
           required: false
           description: >
-            Restrict search to a single scraper. Valid values:
-            yts, nyaa, piratebay, 1337x, eztv, subsplease, fitgirl, torrentscsv, rutracker, bittorrented
+            Restrict search to a single scraper. Valid values: yts, nyaa,
+            piratebay, 1337x, eztv, subsplease, fitgirl, torrentscsv, rutracker,
+            bittorrented
           schema:
             type: string
       responses:
@@ -39,13 +40,14 @@ paths:
                   $ref: '#/components/schemas/TorrentResult'
         '401':
           description: Unauthorized — API key missing or invalid
+      operationId: getApiSearch
 
   /api/download:
     post:
       summary: Add a torrent to download.
       description: >
-        Provide either a 'magnet' link or bare 40-char infohash directly,
-        or an 'auto' query to automatically search and pick the best result.
+        Provide either a 'magnet' link or bare 40-char infohash directly, or an
+        'auto' query to automatically search and pick the best result.
       requestBody:
         required: true
         content:
@@ -61,15 +63,19 @@ paths:
                   description: Search query — Gorrent will auto-pick the highest-scored result
                 category:
                   type: string
-                  description: Category name (e.g. movies, tvshows, anime) — routes files to category_dirs
+                  description: Category name (e.g. movies, tvshows, anime) — routes files to
+                    category_dirs
                 source:
                   type: string
                   description: Restrict the auto-search to a specific scraper (e.g. nyaa, yts)
+                seed_time:
+                  type: string
+                  description: Custom seed duration ("30d", "2h", "0" for infinite). Overrides daemon max_seed_days.
                 callback:
                   type: string
                   description: >
-                    Webhook URL. Gorrent will POST {event, name, hash} to this URL
-                    when the download reaches 100%.
+                    Webhook URL. Gorrent will POST {event, name, hash} to this
+                    URL when the download reaches 100%.
       responses:
         '200':
           description: Download started
@@ -89,6 +95,7 @@ paths:
           description: Unauthorized
         '404':
           description: No results found for auto-download query
+      operationId: postApiDownload
 
   /api/seed:
     post:
@@ -112,6 +119,9 @@ paths:
                 category:
                   type: string
                   description: Optional category
+                seed_time:
+                  type: string
+                  description: Custom seed duration ("30d", "2h", "0" for infinite)
       responses:
         '200':
           description: Seeding successfully started
@@ -137,6 +147,7 @@ paths:
           description: Invalid path or missing parameter
         '401':
           description: Unauthorized
+      operationId: postApiSeed
 
   /api/status:
     get:
@@ -152,6 +163,7 @@ paths:
                   $ref: '#/components/schemas/TorrentStatus'
         '401':
           description: Unauthorized
+      operationId: getApiStatus
 
   /api/torrent:
     delete:
@@ -180,6 +192,48 @@ paths:
           description: Unauthorized
         '404':
           description: Torrent not found
+      operationId: deleteApiTorrent
+
+  /api/torrent/seed-time:
+    post:
+      summary: Update the seed duration limit for an active or completed torrent.
+      description: Set custom seed duration (e.g. "30d", "2h", "0" for infinite, or "" to clear override).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - hash
+              properties:
+                hash:
+                  type: string
+                  description: 40-character infohash
+                seed_time:
+                  type: string
+                  description: Seed duration ("30d", "2h", "0" for permanent, "" to clear)
+      responses:
+        '200':
+          description: Seed limit successfully updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  hash:
+                    type: string
+                  seed_time:
+                    type: string
+        '400':
+          description: Invalid seed_time or missing hash
+        '401':
+          description: Unauthorized
+        '404':
+          description: Torrent not found
+      operationId: postApiTorrentSeedTime
 
   /api/ws:
     get:
@@ -190,6 +244,7 @@ paths:
       security:
         - ApiKeyAuth: []
         - ApiKeyQuery: []
+      operationId: getApiWs
 
   /api/docs:
     get:
@@ -202,6 +257,7 @@ paths:
             application/yaml:
               schema:
                 type: string
+      operationId: getApiDocs
 
   /health:
     get:
@@ -218,6 +274,7 @@ paths:
                   status:
                     type: string
                     example: ok
+      operationId: getHealth
 
   /metrics:
     get:
@@ -234,6 +291,7 @@ paths:
                 gorrent_torrents_active 2
                 gorrent_bytes_downloaded 104857600
                 gorrent_bytes_uploaded 52428800
+      operationId: getMetrics
 
   /files/{path}:
     get:
@@ -241,8 +299,8 @@ paths:
       description: >
         Serves files from the configured download_dir over HTTP. Supports the
         Range header for partial content (ideal for video streaming in Plex,
-        Jellyfin, or a browser). Requires authentication if api_key is set.
-        Path is relative to download_dir (e.g. /files/Movie.Name/video.mkv).
+        Jellyfin, or a browser). Requires authentication if api_key is set. Path
+        is relative to download_dir (e.g. /files/Movie.Name/video.mkv).
       parameters:
         - name: path
           in: path
@@ -259,6 +317,7 @@ paths:
           description: Unauthorized
         '404':
           description: File not found
+      operationId: getFilesByPath
 
 components:
   schemas:
@@ -301,6 +360,18 @@ components:
         peers:
           type: integer
           description: Number of active peer connections
+        seed_time:
+          type: string
+          description: Custom seed limit ("30d", "2h", "0")
+        completed_at:
+          type: integer
+          description: Unix timestamp in seconds when download completed
+        seed_remaining_sec:
+          type: integer
+          description: Remaining seed duration in seconds (-1 for infinite)
+        seed_until:
+          type: integer
+          description: Unix timestamp in seconds when seed limit expires
 
   securitySchemes:
     ApiKeyAuth:

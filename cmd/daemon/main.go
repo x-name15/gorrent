@@ -96,6 +96,8 @@ func main() {
 	http.HandleFunc("/api/seed", srv.authMiddleware(srv.handleSeed))
 	http.HandleFunc("/api/status", srv.authMiddleware(srv.handleStatus))
 	http.HandleFunc("/api/torrent", srv.authMiddleware(srv.handleStop))
+	http.HandleFunc("/api/torrent/seed-time", srv.authMiddleware(srv.handleSeedTime))
+	http.HandleFunc("/api/control", srv.authMiddleware(srv.handleControl))
 	http.HandleFunc("/api/ws", srv.authMiddleware(srv.handleWS))
 	http.HandleFunc("/health", srv.handleHealth)
 	http.HandleFunc("/metrics", srv.handleMetrics)
@@ -161,11 +163,13 @@ func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Magnet   string `json:"magnet"`
-		Auto     string `json:"auto"` // query to auto-download best match
-		Source   string `json:"source"`
-		Callback string `json:"callback"`
-		Category string `json:"category"`
+		Magnet    string `json:"magnet"`
+		Auto      string `json:"auto"` // query to auto-download best match
+		Source    string `json:"source"`
+		Callback  string `json:"callback"`
+		Category  string `json:"category"`
+		SeedTime  string `json:"seed_time"`
+		SeedTimeC string `json:"seedTime"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -173,7 +177,18 @@ func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.Debugf("API POST /api/download - Remote: %s, Auto: '%s', Magnet: '%s'", r.RemoteAddr, req.Auto, req.Magnet)
+	if req.SeedTime == "" && req.SeedTimeC != "" {
+		req.SeedTime = req.SeedTimeC
+	}
+	req.SeedTime = strings.TrimSpace(req.SeedTime)
+	if req.SeedTime != "" {
+		if _, _, err := torrent.ParseSeedDuration(req.SeedTime); err != nil {
+			http.Error(w, fmt.Sprintf("invalid seed_time: %v", err), http.StatusBadRequest)
+			return
+		}
+	}
+
+	logger.Debugf("API POST /api/download - Remote: %s, Auto: '%s', Magnet: '%s', SeedTime: '%s'", r.RemoteAddr, req.Auto, req.Magnet, req.SeedTime)
 
 	magnetToDownload := req.Magnet
 
@@ -210,7 +225,7 @@ func (s *Server) handleDownload(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(context.Background(), 7*24*time.Hour)
 		defer cancel()
 
-		t, err := s.torrentCli.AddMagnet(magnetToDownload, req.Category)
+		t, err := s.torrentCli.AddMagnetWithSeedTime(magnetToDownload, req.Category, req.SeedTime)
 		if err != nil {
 			log.Printf("Failed to add magnet: %v", err)
 			return
@@ -266,8 +281,10 @@ func (s *Server) handleSeed(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Path     string `json:"path"`
-		Category string `json:"category"`
+		Path      string `json:"path"`
+		Category  string `json:"category"`
+		SeedTime  string `json:"seed_time"`
+		SeedTimeC string `json:"seedTime"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -281,9 +298,20 @@ func (s *Server) handleSeed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.Debugf("API POST /api/seed - Remote: %s, Path: '%s', Category: '%s'", r.RemoteAddr, req.Path, req.Category)
+	if req.SeedTime == "" && req.SeedTimeC != "" {
+		req.SeedTime = req.SeedTimeC
+	}
+	req.SeedTime = strings.TrimSpace(req.SeedTime)
+	if req.SeedTime != "" {
+		if _, _, err := torrent.ParseSeedDuration(req.SeedTime); err != nil {
+			http.Error(w, fmt.Sprintf("invalid seed_time: %v", err), http.StatusBadRequest)
+			return
+		}
+	}
 
-	res, err := s.torrentCli.SeedPath(req.Path, req.Category)
+	logger.Debugf("API POST /api/seed - Remote: %s, Path: '%s', Category: '%s', SeedTime: '%s'", r.RemoteAddr, req.Path, req.Category, req.SeedTime)
+
+	res, err := s.torrentCli.SeedPathWithSeedTime(req.Path, req.Category, req.SeedTime)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to seed path: %v", err), http.StatusBadRequest)
 		return
@@ -330,6 +358,121 @@ func (s *Server) handleStop(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "stopped", "hash": hash})
+}
+
+func (s *Server) handleSeedTime(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Hash      string `json:"hash"`
+		ID        string `json:"id"`
+		SeedTime  string `json:"seed_time"`
+		SeedTimeC string `json:"seedTime"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON body", http.StatusBadRequest)
+		return
+	}
+
+	targetHash := strings.TrimSpace(req.Hash)
+	if targetHash == "" {
+		targetHash = strings.TrimSpace(req.ID)
+	}
+	if targetHash == "" {
+		http.Error(w, "Missing hash parameter", http.StatusBadRequest)
+		return
+	}
+
+	seedTime := strings.TrimSpace(req.SeedTime)
+	if seedTime == "" {
+		seedTime = strings.TrimSpace(req.SeedTimeC)
+	}
+
+	if seedTime != "" {
+		if _, _, err := torrent.ParseSeedDuration(seedTime); err != nil {
+			http.Error(w, fmt.Sprintf("invalid seed_time: %v", err), http.StatusBadRequest)
+			return
+		}
+	}
+
+	if err := s.torrentCli.SetSeedTime(targetHash, seedTime); err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"ok":        true,
+		"hash":      targetHash,
+		"seed_time": seedTime,
+	})
+}
+
+func (s *Server) handleControl(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		ID          string `json:"id"`
+		Hash        string `json:"hash"`
+		Action      string `json:"action"`
+		DeleteFiles bool   `json:"deleteFiles"`
+		SeedTime    string `json:"seedTime"`
+		SeedTimeS   string `json:"seed_time"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON body", http.StatusBadRequest)
+		return
+	}
+
+	id := strings.TrimSpace(req.ID)
+	if id == "" {
+		id = strings.TrimSpace(req.Hash)
+	}
+	if id == "" {
+		http.Error(w, "Missing id or hash", http.StatusBadRequest)
+		return
+	}
+
+	action := strings.TrimSpace(strings.ToLower(req.Action))
+	switch action {
+	case "seed-time":
+		seedTime := strings.TrimSpace(req.SeedTime)
+		if seedTime == "" {
+			seedTime = strings.TrimSpace(req.SeedTimeS)
+		}
+		if seedTime != "" {
+			if _, _, err := torrent.ParseSeedDuration(seedTime); err != nil {
+				http.Error(w, fmt.Sprintf("invalid seed_time: %v", err), http.StatusBadRequest)
+				return
+			}
+		}
+		if err := s.torrentCli.SetSeedTime(id, seedTime); err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{"ok": true, "id": id, "action": action})
+		return
+	case "stop-seed", "remove", "delete":
+		if err := s.torrentCli.StopTorrent(id); err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{"ok": true, "id": id, "action": action})
+		return
+	default:
+		http.Error(w, fmt.Sprintf("unknown action: %s", action), http.StatusBadRequest)
+		return
+	}
 }
 
 var upgrader = websocket.Upgrader{

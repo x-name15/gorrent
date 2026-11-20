@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/x-name15/gorrent/pkg/config"
 	"github.com/x-name15/gorrent/pkg/search"
@@ -55,6 +56,8 @@ func main() {
 		handleStatus()
 	case "stop":
 		handleStop(os.Args[2:])
+	case "seed-time":
+		handleSeedTime(os.Args[2:])
 	default:
 		fmt.Printf("Unknown command: %s\n", command)
 		printUsage()
@@ -66,12 +69,13 @@ func printUsage() {
 	fmt.Println(`Usage: gorrent <command> [args]
 
 Commands:
-  search [--source <name>] <query>          Search for torrents
-  download [--source <name>] --auto <query> Auto-search and download the best match
-  download <magnet>                         Download a specific magnet link
-  seed [--category <name>] <path>           Turn a local folder/file into a torrent and seed it
-  status                  Show active downloads
-  stop <hash>             Stop and delete an active download`)
+  search [--source <name>] <query>                              Search for torrents
+  download [--source <name>] [--seed-time <dur>] --auto <query> Auto-search and download
+  download [--seed-time <dur>] <magnet>                         Download a specific magnet link
+  seed [--category <name>] [--seed-time <dur>] <path>           Turn folder/file into torrent and seed it
+  seed-time <hash> <duration>                                   Set custom seed limit (e.g. 30d, 2h, 0 = infinite)
+  status                                                        Show active downloads
+  stop <hash>                                                   Stop and delete an active download`)
 }
 
 func handleSearch(args []string) {
@@ -120,6 +124,7 @@ func handleDownload(args []string) {
 	sourceFlag := downloadCmd.String("source", "", "Specific source to search (e.g. nyaa, yts)")
 	callbackFlag := downloadCmd.String("callback", "", "Webhook URL to notify upon completion")
 	categoryFlag := downloadCmd.String("category", "", "Save torrent to a specific category folder")
+	seedTimeFlag := downloadCmd.String("seed-time", "", "Custom seed duration (e.g. 30d, 2h, 0 for infinite)")
 	downloadCmd.Parse(args)
 
 	payload := map[string]string{}
@@ -134,6 +139,10 @@ func handleDownload(args []string) {
 
 	if *categoryFlag != "" {
 		payload["category"] = *categoryFlag
+	}
+
+	if *seedTimeFlag != "" {
+		payload["seed_time"] = *seedTimeFlag
 	}
 
 	if *autoFlag != "" {
@@ -162,6 +171,29 @@ func handleDownload(args []string) {
 	}
 
 	fmt.Println("Download started successfully!")
+}
+
+func formatDuration(sec int64) string {
+	if sec < 0 {
+		return "infinite"
+	}
+	d := time.Duration(sec) * time.Second
+	if d >= 24*time.Hour {
+		days := d / (24 * time.Hour)
+		hours := (d % (24 * time.Hour)) / time.Hour
+		return fmt.Sprintf("%dd %dh remaining", days, hours)
+	}
+	if d >= time.Hour {
+		hours := d / time.Hour
+		mins := (d % time.Hour) / time.Minute
+		return fmt.Sprintf("%dh %dm remaining", hours, mins)
+	}
+	if d >= time.Minute {
+		mins := d / time.Minute
+		secs := (d % time.Minute) / time.Second
+		return fmt.Sprintf("%dm %ds remaining", mins, secs)
+	}
+	return fmt.Sprintf("%ds remaining", sec)
 }
 
 func handleStatus() {
@@ -194,6 +226,14 @@ func handleStatus() {
 
 		fmt.Printf("- %s\n  Progress: %.1f%% (%.2f / %.2f MB) | Peers: %.0f\n",
 			s["name"], progress, dl/1024/1024, total/1024/1024, peers)
+
+		if st, ok := s["seed_time"].(string); ok && st != "" {
+			remStr := ""
+			if rem, ok := s["seed_remaining_sec"].(float64); ok {
+				remStr = " | " + formatDuration(int64(rem))
+			}
+			fmt.Printf("  Seed Limit: %s%s\n", st, remStr)
+		}
 	}
 }
 
@@ -222,10 +262,11 @@ func handleStop(args []string) {
 func handleSeed(args []string) {
 	seedCmd := flag.NewFlagSet("seed", flag.ExitOnError)
 	categoryFlag := seedCmd.String("category", "", "Optional category for the seeded torrent")
+	seedTimeFlag := seedCmd.String("seed-time", "", "Custom seed duration (e.g. 30d, 2h, 0 for infinite)")
 	seedCmd.Parse(args)
 
 	if seedCmd.NArg() < 1 {
-		fmt.Println("Usage: gorrent seed [--category <name>] <path>")
+		fmt.Println("Usage: gorrent seed [--category <name>] [--seed-time <duration>] <path>")
 		os.Exit(1)
 	}
 
@@ -238,6 +279,9 @@ func handleSeed(args []string) {
 	payload := map[string]string{
 		"path":     absPath,
 		"category": *categoryFlag,
+	}
+	if *seedTimeFlag != "" {
+		payload["seed_time"] = *seedTimeFlag
 	}
 
 	b, _ := json.Marshal(payload)
@@ -269,4 +313,35 @@ func handleSeed(args []string) {
 		fmt.Printf(".torrent:    %s\n", tf)
 	}
 	fmt.Printf("Magnet:      %v\n", res["magnet"])
+}
+
+func handleSeedTime(args []string) {
+	if len(args) < 2 {
+		fmt.Println("Usage: gorrent seed-time <hash> <duration>")
+		fmt.Println("Example: gorrent seed-time 4a6c8e... 2h")
+		fmt.Println("Pass '0' to seed indefinitely, or '' to clear custom limit.")
+		return
+	}
+	hash := args[0]
+	duration := args[1]
+
+	payload := map[string]string{
+		"hash":      hash,
+		"seed_time": duration,
+	}
+	body, _ := json.Marshal(payload)
+	req, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/api/torrent/seed-time", DaemonURL), bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := doRequest(req)
+	if err != nil {
+		log.Fatal("Failed to connect to daemon:", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		log.Fatalf("Daemon error: %s", string(b))
+	}
+
+	fmt.Printf("Successfully updated seed limit for %s to: %s\n", hash, duration)
 }

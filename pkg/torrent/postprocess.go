@@ -12,16 +12,10 @@ import (
 	"github.com/anacrolix/torrent"
 )
 
-// startPostProcessor handles running scripts and creating hardlinks when torrents finish.
+// startPostProcessor handles running scripts, creating hardlinks, and generating playlists when torrents finish.
 func (c *Client) startPostProcessor() {
-	if c.cfg.HardlinkDir == "" && c.cfg.PostScript == "" {
-		return
-	}
-
-	log.Printf("Post-Processor enabled. Hardlinks: %s | PostScript: %s", c.cfg.HardlinkDir, c.cfg.PostScript)
-	if c.cfg.PostScript != "" {
-		log.Printf("[NOTE] post_script runs the script as a native process. If running inside Docker (scratch image), use the 'callback' webhook instead.")
-	}
+	playlistEnabled := !c.cfg.NoPlaylist && os.Getenv("GORRENT_NO_PLAYLIST") == ""
+	log.Printf("Post-Processor active (Playlists: %v, Hardlinks: %v, PostScript: %v)", playlistEnabled, c.cfg.HardlinkDir != "", c.cfg.PostScript != "")
 
 	os.MkdirAll(c.dataDir, 0755)
 	stateFile := filepath.Join(c.dataDir, "gorrent_processed.json")
@@ -50,10 +44,34 @@ func (c *Client) startPostProcessor() {
 
 				category, targetPath := c.getTorrentCategoryAndPath(t)
 
+				// 1. Record completion timestamp in stateData if not already set
+				c.stateMu.Lock()
+				if item, exists := c.stateData[hash]; exists && item.CompletedAt == 0 {
+					item.CompletedAt = time.Now().Unix()
+					c.stateData[hash] = item
+					c.saveState()
+				}
+				c.stateMu.Unlock()
+
+				// 2. Playlist generation for multi-file audio/video torrents
+				if playlistEnabled {
+					var filePaths []string
+					for _, f := range t.Files() {
+						filePaths = append(filePaths, f.Path())
+					}
+					baseDir := filepath.Dir(targetPath)
+					if !strings.HasSuffix(filepath.Clean(targetPath), filepath.Clean(t.Name())) {
+						baseDir = targetPath
+					}
+					_ = WritePlaylists(baseDir, filePaths)
+				}
+
+				// 3. Hardlinks
 				if c.cfg.HardlinkDir != "" {
 					c.createHardlinks(t, targetPath, category)
 				}
 
+				// 4. Post-script
 				if c.cfg.PostScript != "" {
 					c.runPostScript(t, targetPath, category)
 				}

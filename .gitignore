@@ -1,6 +1,8 @@
 # Binaries
 /bin/
 gorrent
+cli.exe
+daemon.exe
 gorrent.exe
 gorrent-daemon
 gorrent-daemon.exe

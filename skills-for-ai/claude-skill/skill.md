@@ -19,9 +19,9 @@ These are thin wrappers around `docker exec -it gorrent /gorrent "$@"`.
 **Download:**
 ```bash
 # Auto-search and download best match:
-./gorrent.sh download --auto <query> [--source <name>] [--category <name>] [--callback <url>]
+./gorrent.sh download --auto <query> [--source <name>] [--category <name>] [--seed-time <dur>] [--callback <url>]
 # Download a specific magnet link or 40-char infohash:
-./gorrent.sh download <magnet_or_hash> [--category <name>] [--callback <url>]
+./gorrent.sh download <magnet_or_hash> [--category <name>] [--seed-time <dur>] [--callback <url>]
 ```
 
 **Check Status:**
@@ -36,7 +36,12 @@ These are thin wrappers around `docker exec -it gorrent /gorrent "$@"`.
 
 **Seed Local Folder/File:**
 ```bash
-./gorrent.sh seed [--category <name>] <path>
+./gorrent.sh seed [--category <name>] [--seed-time <dur>] <path>
+```
+
+**Update Seed Duration Limit:**
+```bash
+./gorrent.sh seed-time <hash> <duration> # e.g. 2h, 30d, 0 for infinite, "" to clear
 ```
 
 **Available `--source` values** (restrict search to one scraper):
@@ -51,9 +56,10 @@ e.g. `movies`, `tvshows`, `anime` — or whatever the user has set in `category_
 Daemon listens on `http://localhost:7800`. If `api_key` is set in config, include `X-API-Key: <key>` header or `?apikey=<key>` query param.
 
 - **Search**: `GET /api/search?q=<query>[&source=<name>]`
-- **Download**: `POST /api/download` — body: `{"magnet":"..."}` or `{"auto":"...","category":"...","source":"...","callback":"..."}`
-- **Seed**: `POST /api/seed` — body: `{"path":"/abs/path","category":"..."}` — seeds existing local folder/file directly without downloading
-- **Status**: `GET /api/status` — returns `[{hash, name, downloaded, length, peers}]`
+- **Download**: `POST /api/download` — body: `{"magnet":"..."}` or `{"auto":"...","category":"...","source":"...","seed_time":"2h","callback":"..."}`
+- **Seed**: `POST /api/seed` — body: `{"path":"/abs/path","category":"...","seed_time":"30d"}` — seeds existing local folder/file directly without downloading
+- **Update Seed Limit**: `POST /api/torrent/seed-time` — body: `{"hash":"...","seed_time":"2h"}`
+- **Status**: `GET /api/status` — returns `[{hash, name, downloaded, length, peers, seed_time, seed_remaining_sec}]`
 - **Stop**: `DELETE /api/torrent?hash=<hash>`
 - **WebSocket**: `ws://localhost:7800/api/ws` — streams status every 1s
 - **Metrics**: `GET /metrics` — Prometheus text (no auth needed). Exports: `gorrent_torrents_active`, `gorrent_bytes_downloaded`, `gorrent_bytes_uploaded`
@@ -90,6 +96,8 @@ If the user asks you to configure anything, you MUST directly edit `config.yaml`
 - `post_script` (string): **Optional.** Path to a script executed on download completion. Receives env vars: `GORRENT_HASH`, `GORRENT_NAME`, `GORRENT_PATH`, `GORRENT_CATEGORY`. For Docker use the `callback` webhook instead.
 - `watch_dir` (string): **Optional, default empty (disabled).** Gorrent polls this directory every 5 seconds. Drop a `.magnet` or `.txt` file containing a magnet URI and Gorrent auto-downloads it. Processed files are archived to `watch_dir/handled/`.
 - `delete_files_on_stop` (bool): **Optional, default false.** When the GC drops a torrent, also permanently delete its files from disk. Default is `false` — Gorrent's philosophy is to always keep files for Plex/Jellyfin. Only set to `true` if the user explicitly wants disk space rotation. This is irreversible.
+- `no_playlist` (bool): **Optional, default false.** Automatically generates `playlist.m3u` in download folders with 2+ media files. Set `true` (or `GORRENT_NO_PLAYLIST=1`) to disable.
+- `disable_utp` (bool): **Optional, default false.** Disable uTP socket allocations in restricted networks. Set `true` (or `GORRENT_NO_UTP=1`) to disable.
 
 ### `rss` block
 - `interval_min` (int): How often to poll all RSS feeds (in minutes).

@@ -1,7 +1,7 @@
 ---
 name: gorrent-automation
 description: Automates downloading torrents using the local Gorrent daemon via the CLI wrapper.
-version: 1.7.0
+version: 1.9.0
 author: Mr Jacket
 license: GPL-3.0
 metadata:
@@ -29,12 +29,12 @@ Use the local `gorrent` CLI wrapper (`gorrent.sh` on macOS/Linux, `gorrent.bat` 
 
 **Download (auto-pick best result):**
 ```bash
-./gorrent.sh download --auto <query> [--source <name>] [--category <name>] [--callback <url>]
+./gorrent.sh download --auto <query> [--source <name>] [--category <name>] [--seed-time <dur>] [--callback <url>]
 ```
 
 **Download (specific magnet or infohash):**
 ```bash
-./gorrent.sh download <magnet_or_40char_hash> [--category <name>] [--callback <url>]
+./gorrent.sh download <magnet_or_40char_hash> [--category <name>] [--seed-time <dur>] [--callback <url>]
 ```
 
 **Check status:**
@@ -49,7 +49,12 @@ Use the local `gorrent` CLI wrapper (`gorrent.sh` on macOS/Linux, `gorrent.bat` 
 
 **Seed a local folder or file:**
 ```bash
-./gorrent.sh seed [--category <name>] <path>
+./gorrent.sh seed [--category <name>] [--seed-time <dur>] <path>
+```
+
+**Update Seed Duration Limit:**
+```bash
+./gorrent.sh seed-time <hash> <duration> # e.g. 2h, 30d, 0 for infinite, "" to clear
 ```
 
 **Available `--source` values** (restrict to one scraper):
@@ -88,6 +93,8 @@ If the user asks you to automate something, DO NOT ask them to edit files. YOU m
 - `post_script` (string): **Optional.** Path to bash script run on download completion. Env vars injected: `GORRENT_HASH`, `GORRENT_NAME`, `GORRENT_PATH`, `GORRENT_CATEGORY`.
 - `watch_dir` (string): **Optional.** Drop `.magnet` or `.txt` files (containing a magnet URI) here → Gorrent auto-downloads them within 5 seconds and moves them to `watch_dir/handled/`. Leave empty (default) to disable.
 - `delete_files_on_stop` (bool): **Optional, default `false`.** When `auto_cleanup` GC drops a torrent, also permanently deletes its files from disk. **Default is `false`** — files are always kept on disk for Plex/Jellyfin. Only set to `true` if the user explicitly asks for disk space rotation.
+- `no_playlist` (bool): **Optional, default `false`.** Auto-generate `playlist.m3u` for completed folders with 2+ media files. Set `true` (or `GORRENT_NO_PLAYLIST=1`) to disable.
+- `disable_utp` (bool): **Optional, default `false`.** Disable uTP socket allocations in restricted networks. Set `true` (or `GORRENT_NO_UTP=1`) to disable.
 
 ### `rss` block
 - `interval_min` (int): Polling interval in minutes.

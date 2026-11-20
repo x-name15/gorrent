@@ -28,10 +28,11 @@ Returns a JSON array of results. Pick the one with the highest `score` or `seede
   "auto": "search query (Gorrent auto-picks best result)",
   "category": "movies | tvshows | anime | ...",
   "source": "restrict auto-search to one scraper",
+  "seed_time": "30d | 2h | 90m | 0 (0 = infinite seed; overrides daemon limit)",
   "callback": "https://your-webhook-url (POST when 100% done)"
 }
 ```
-Use `magnet` OR `auto`, not both. `category`, `source`, and `callback` are all optional.
+Use `magnet` OR `auto`, not both. `category`, `source`, `seed_time`, and `callback` are all optional.
 
 **Webhook payload** (sent to `callback` when complete):
 ```json
@@ -41,9 +42,9 @@ Use `magnet` OR `auto`, not both. `category`, `source`, and `callback` are all o
 ### 3. Status
 `GET /api/status`
 
-Returns array of active torrents:
+Returns array of active torrents (including per-torrent seed limits and time left):
 ```json
-[{"hash":"...", "name":"...", "downloaded":102400, "length":1073741824, "peers":12}]
+[{"hash":"...", "name":"...", "downloaded":102400, "length":1073741824, "peers":12, "seed_time":"2h", "seed_remaining_sec":7140}]
 ```
 
 ### 4. Stop Torrent
@@ -76,10 +77,20 @@ Example: `GET /files/Movie.Name/video.mkv`
 ```json
 {
   "path": "/absolute/path/to/folder/or/file",
-  "category": "movies | tvshows | music | ..."
+  "category": "movies | tvshows | music | ...",
+  "seed_time": "30d | 2h | 0 (optional per-torrent seed duration)"
 }
 ```
 Turns an existing local folder or file into an active torrent and starts seeding it immediately without re-downloading. Saves the `.torrent` file in `download_dir` and returns its magnet URI.
+
+### 11. Update Seed Limit
+`POST /api/torrent/seed-time`
+```json
+{
+  "hash": "40-char-infohash",
+  "seed_time": "2h | 30d | 0 (0 = never stop seeding, '' = clear override)"
+}
+```
 
 ## Config Automation (Zero-Touch UX)
 If the user asks you to configure anything, directly modify `config.yaml`. Full schema:
@@ -110,6 +121,8 @@ If the user asks you to configure anything, directly modify `config.yaml`. Full 
 - `post_script` (string): **Optional.** Bash script path run on completion. Env vars: `GORRENT_HASH`, `GORRENT_NAME`, `GORRENT_PATH`, `GORRENT_CATEGORY`.
 - `watch_dir` (string): **Optional.** Drop `.magnet` or `.txt` files (containing a magnet URI) here → Gorrent auto-downloads them within 5 seconds and moves them to `watch_dir/handled/`. Leave empty (default) to disable.
 - `delete_files_on_stop` (bool): **Optional, default `false`.** When `auto_cleanup` GC drops a torrent, also permanently deletes its files from disk. **Default is `false`** — Gorrent always keeps files on disk for Plex/Jellyfin. Only set to `true` if the user explicitly asks for disk space rotation.
+- `no_playlist` (bool): **Optional, default `false`.** If `false`, automatically creates `playlist.m3u` in completed download folders containing 2+ media files. Set to `true` (or env `GORRENT_NO_PLAYLIST=1`) to disable playlist generation.
+- `disable_utp` (bool): **Optional, default `false`.** Set to `true` (or env `GORRENT_NO_UTP=1`) to disable uTP socket allocations in restricted networks.
 
 ### `rss` block
 - `interval_min` (int): Polling interval in minutes.
